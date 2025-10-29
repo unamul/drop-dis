@@ -1,4 +1,3 @@
-// src/components/EmployeeList.tsx
 import React from 'react';
 import { EmployeeData } from '../utils/contract';
 

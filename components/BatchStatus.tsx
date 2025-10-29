@@ -1,4 +1,3 @@
-// src/components/BatchStatus.tsx
 import React, { useState, useEffect } from 'react';
 import { getBatchStatus, getDecryptedEmployee } from '../utils/contract';
 

@@ -1,6 +1,5 @@
 'use client';
 
-// src/components/EmployeeForm.tsx
 import React, { useState } from 'react';
 import { EmployeeData } from '../utils/contract';
 
