@@ -22,6 +22,9 @@ const config = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "",
   },
+  sourcify: {
+    enabled: true,
+  },
   gasReporter: {
     currency: "USD",
     enabled: process.env.REPORT_GAS ? true : false,

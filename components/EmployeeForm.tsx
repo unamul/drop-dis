@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/EmployeeForm.tsx
 
 'use client';
 
@@ -41,9 +40,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
 
     setIsAdding(true);
-    const tempId = `temp-${Date.now()}`; // Unique ID for the new employee
+    const tempId = `temp-${Date.now()}`;
 
-    // 1. Immediately add the employee to the list in an 'encrypting' state
     const newEmployee: any = {
       id: tempId,
       address,
@@ -54,10 +52,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     onAddEmployee(newEmployee);
 
     try {
-      // 2. Start the encryption process
+      // Start the encryption process
       const encryptedData = await encryptEmployeeData(address, parseFloat(salary));
 
-      // 3. On success, update the employee with the encrypted data
       onUpdateEmployee(tempId, {
         ...encryptedData,
         isEncrypting: false,
@@ -70,7 +67,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
       });
     } catch (error: any) {
       onRemoveEmployee(tempId, 'new');
-      // 4. On failure, update the employee with an error
+
       onUpdateEmployee(tempId, {
         isEncrypting: false,
         encryptionError: error.message,

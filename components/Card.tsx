@@ -26,7 +26,7 @@ const Card: React.FC<CardProps> = ({ employee, onRemoveEmployee }) => {
     <tr className="">
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <span className="flex gap-2 items-center">
-          {employee.address.slice(0, 6)}****{employee.address.slice(-4)}
+          {employee.address.slice(0, 4)}****{employee.address.slice(-4)}
           {getStatusIcon()}
         </span>
       </td>

@@ -11,16 +11,16 @@
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- 🔐 **End-to-End Encryption**: Employee addresses and salaries are encrypted on the client-side and remain private throughout the entire process.
-- 📦 **Efficient Batch Processing**: Distribute salaries to hundreds of employees in a single, gas-optimized transaction.
-- ⚡ **Real-Time UI Feedback**: Watch as each employee's data is encrypted with a beautiful, responsive interface that shows live status updates.
-- 📊 **Interactive Dashboard**: Get a complete, historical overview of all salary batches, their status, and detailed payout information.
-- 🛡️ **Built on fhEVM**: Powered by Zama's revolutionary Fully Homomorphic Encryption, ensuring computations on encrypted data without decryption.
-- 🎨 **Modern Tech Stack**: Built with the best tools in the industry: Next.js 16, TypeScript, Tailwind CSS, and Hardhat.
+- **End-to-End Encryption**: Employee addresses and salaries are encrypted on the client-side and remain private throughout the entire process.
+- **Efficient Batch Processing**: Distribute salaries to hundreds of employees in a single, gas-optimized transaction.
+- **Real-Time UI Feedback**: Watch as each employee's data is encrypted with a beautiful, responsive interface that shows live status updates.
+- **Interactive Dashboard**: Get a complete, historical overview of all salary batches, their status, and detailed payout information.
+- **Built on fhEVM**: Powered by Zama's revolutionary Fully Homomorphic Encryption, ensuring computations on encrypted data without decryption.
+- **Modern Tech Stack**: Built with the best tools in the industry: Next.js 16, TypeScript, Tailwind CSS, and Hardhat.
 
-## 🏗️ How It Works: The Magic of FHE
+## How It Works: The Magic of FHE
 
 Traditional blockchains are public. With fhEVM, DropDis can perform calculations on encrypted data. Think of it like sending a locked box to the blockchain. The contract can verify the total amount inside the box is correct, but it can't see what's inside until you, the owner, provide the special key.
 
@@ -43,7 +43,7 @@ sequenceDiagram
     Frontend-->>User: 8. Shows "Complete" Status
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Blockchain Layer
 
@@ -67,7 +67,7 @@ sequenceDiagram
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -98,7 +98,7 @@ MNEMONIC=
 INFURA_API_KEY=
 ETHERSCAN_API_KEY=
 
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x427234b65Be3Aba577D6E35201F7a0c0B4556778
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x684468E7fe477AaB7525573106eB88F3D18B9Ce2
 PRIVATE_KEY=
 BATCH_SIZE=50
 ```
@@ -125,7 +125,7 @@ Navigate to [http://localhost:3000](http://localhost:3000) to start using DropDi
 
 ---
 
-## 📖 Usage Guide
+## Usage Guide
 
 1.  **Connect Wallet**: Ensure your wallet is connected to the Sepolia network.
 2.  **Add Employees**: Enter an employee's address and salary. Click **Add Employee**.
@@ -136,7 +136,7 @@ Navigate to [http://localhost:3000](http://localhost:3000) to start using DropDi
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 This project uses the Zama FHE mock environment for testing, which simulates the entire encryption/decryption flow.
 
@@ -147,10 +147,10 @@ pnpm test
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-## 📁 Project Structure
+## Project Structure
 
 DROP-DIS/
 │
@@ -205,7 +205,7 @@ DROP-DIS/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Whether it's a bug fix, a new feature, or an improvement to the documentation, your help is appreciated.
 

@@ -41,7 +41,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onRemoveEmployee
             </table>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="font-semibold text-blue-500 text-sm">
+            <p className="font-semibold text-green-500 text-sm">
               Total Salary Amount: {totalSalary} ETH
             </p>
           </div>

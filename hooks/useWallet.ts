@@ -36,6 +36,7 @@ export function useWallet() {
   // auto-load on refresh
   useEffect(() => {
     const stored = localStorage.getItem("connectedAddress");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setAddress(stored);
   }, []);
 

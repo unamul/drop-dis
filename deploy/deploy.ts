@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
 
-const func: any = async function (hre: HardhatRuntimeEnvironment | any) {
+const func: any = async function (hre: any | any) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
