@@ -21,11 +21,14 @@
     "@fhevm/solidity": "^0.8.0",
     "@zama-fhe/oracle-solidity": "^0.1.0",
     "@zama-fhe/relayer-sdk": "^0.2.0",
+    "encrypted-types": "^0.0.4",
     "ethers": "^6.15.0",
     "install": "^0.13.0",
     "next": "16.0.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "react-icons": "^5.5.0",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@fhevm/hardhat-plugin": "^0.1.0",

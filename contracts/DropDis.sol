@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {FHE, eaddress, euint64, externalEaddress, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import "hardhat/console.sol";
 
 contract DropDis is SepoliaConfig {
     address public owner;
@@ -226,6 +227,7 @@ contract DropDis is SepoliaConfig {
             batch.amountDecrypted &&
             !batch.isProcessed
         ) {
+            console.log("GRETTTTTTTTTTT", batchId);
             // Process the salary distribution
             _processSalaryDistribution(batchId);
         }

@@ -1,32 +1,87 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/components/EmployeeForm.tsx
+
 'use client';
 
-import React, { useState } from 'react';
-import { EmployeeData } from '../utils/contract';
+import React, { useEffect, useState } from 'react';
+import { EmployeeData, encryptEmployeeData } from '../utils/contract';
+import { toast } from 'sonner';
 
 interface EmployeeFormProps {
   onAddEmployee: (employee: EmployeeData) => void;
+  onUpdateEmployee: (id: string, updates: any) => void;
+  onRemoveEmployee: (id: string, updates: any) => void;
+  seIsEncrypting: (id: boolean) => void;
 }
 
-const EmployeeForm: React.FC<EmployeeFormProps> = ({ onAddEmployee }) => {
+const EmployeeForm: React.FC<EmployeeFormProps> = ({
+  onAddEmployee,
+  onUpdateEmployee,
+  onRemoveEmployee,
+  seIsEncrypting,
+}) => {
   const [address, setAddress] = useState('');
   const [salary, setSalary] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAdding) {
+      seIsEncrypting(true);
+    } else {
+      seIsEncrypting(false);
+    }
+  }, [isAdding]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!address || !salary) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
-    onAddEmployee({
+    setIsAdding(true);
+    const tempId = `temp-${Date.now()}`; // Unique ID for the new employee
+
+    // 1. Immediately add the employee to the list in an 'encrypting' state
+    const newEmployee: any = {
+      id: tempId,
       address,
       salary: parseFloat(salary),
-    });
+      isEncrypting: true,
+      isEncrypted: false,
+    };
+    onAddEmployee(newEmployee);
 
-    // Reset form
-    setAddress('');
-    setSalary('');
+    try {
+      // 2. Start the encryption process
+      const encryptedData = await encryptEmployeeData(address, parseFloat(salary));
+
+      // 3. On success, update the employee with the encrypted data
+      onUpdateEmployee(tempId, {
+        ...encryptedData,
+        isEncrypting: false,
+        isEncrypted: true,
+      });
+      toast.success('Employee added and encrypted successfully!', {
+        style: {
+          backgroundColor: 'green',
+        },
+      });
+    } catch (error: any) {
+      onRemoveEmployee(tempId, 'new');
+      // 4. On failure, update the employee with an error
+      onUpdateEmployee(tempId, {
+        isEncrypting: false,
+        encryptionError: error.message,
+      });
+      toast.error(error.message);
+    } finally {
+      setIsAdding(false);
+      // Reset form
+      setAddress('');
+      setSalary('');
+    }
   };
 
   return (
@@ -62,9 +117,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ onAddEmployee }) => {
         </div>
         <button
           type="submit"
-          className="bg-amber-500 hover:bg-amber-600 hover:cursor-pointer text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          disabled={isAdding}
+          className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hover:cursor-pointer"
         >
-          Add
+          {isAdding ? 'Encrypting... please wait' : 'Add'}
         </button>
       </form>
     </div>

@@ -1,9 +1,11 @@
+// src/components/EmployeeList.tsx
 import React from 'react';
 import { EmployeeData } from '../utils/contract';
+import Card from './Card';
 
 interface EmployeeListProps {
   employees: EmployeeData[];
-  onRemoveEmployee: (index: number) => void;
+  onRemoveEmployee: (id: string) => void;
 }
 
 const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onRemoveEmployee }) => {
@@ -16,7 +18,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onRemoveEmployee
         <p className="text-gray-500">No employees added yet</p>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto h-60">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -32,23 +34,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onRemoveEmployee
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {employees.map((employee, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.address?.slice(0, 6)}*******{employee.address?.slice(-4)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.salary} ETH
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <button
-                        onClick={() => onRemoveEmployee(index)}
-                        className="text-red-500 hover:text-red-900 hover:cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
+                {[...employees]?.reverse()?.map((employee) => (
+                  <Card key={employee.id} employee={employee} onRemoveEmployee={onRemoveEmployee} />
                 ))}
               </tbody>
             </table>

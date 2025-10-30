@@ -6,46 +6,77 @@ import EmployeeForm from '../components/EmployeeForm';
 import EmployeeList from '../components/EmployeeList';
 import BatchStatus from '../components/BatchStatus';
 import { EmployeeData, submitSalaryBatch } from '../utils/contract';
+import { toast } from 'sonner';
 
 const SalaryDistribution: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [currentBatchId, setCurrentBatchId] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState<null | string>(null);
+  const [submitting, setSubmitting] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [isEncrypting, seIsEncrypting] = useState<boolean>(false);
 
-  const handleAddEmployee = (employee: EmployeeData) => {
-    setEmployees([...employees, employee]);
+  const [encryptedAddresses, setEncryptedAddresses] = useState<any>([]);
+  const [encryptedAmounts, setEncryptedAmounts] = useState<any>([]);
+  const [addressProofs, setAddressProofs] = useState<any>([]);
+  const [amountProofs, setAmountProofs] = useState<any>([]);
+
+  const handleAddEmployee = (newEmployee: EmployeeData) => {
+    setEmployees((prev) => [...prev, newEmployee]);
   };
 
-  const handleRemoveEmployee = (index: number) => {
-    setEmployees(employees.filter((_, i) => i !== index));
+  const totalSalary = employees.reduce((sum, emp) => sum + emp.salary, 0);
+
+  const handleUpdateEmployee = (id: string, updates: any) => {
+    if (!updates?.encryptionError) {
+      console.log({ updates });
+      setEncryptedAddresses([...encryptedAddresses, { id, data: updates?.encryptedAddress }]);
+      setEncryptedAmounts([...encryptedAmounts, { id, data: updates.encryptedAmount }]);
+      setAddressProofs([...addressProofs, { id, data: updates.addressProof }]);
+      setAmountProofs([...amountProofs, { id, data: updates.amountProof }]);
+    }
+
+    setEmployees((prev) => prev.map((emp: any) => (emp.id === id ? { ...emp, ...updates } : emp)));
+  };
+
+  const handleRemoveEmployee = (id: string) => {
+    setEmployees((prev) => prev.filter((emp: any) => emp.id !== id));
+
+    setEncryptedAddresses((prev: any) => prev.filter((pr: any) => pr.id !== id));
+    setEncryptedAmounts((prev: any) => prev.filter((pr: any) => pr.id !== id));
+    setAddressProofs((prev: any) => prev.filter((pr: any) => pr.id !== id));
+    setAmountProofs((prev: any) => prev.filter((pr: any) => pr.id !== id));
   };
 
   const handleSubmitBatch = async () => {
-    if (employees.length === 0) {
-      alert('Please add at least one employee');
+    const readyEmployees = employees.filter((emp: any) => emp.isEncrypted);
+    if (readyEmployees.length === 0) {
+      toast.error('No fully encrypted employees to submit.');
       return;
     }
 
+    const employeesData = {
+      encryptedAddresses,
+      encryptedAmounts,
+      addressProofs,
+      amountProofs,
+    };
+
     try {
-      console.log({ employees });
-      const result = await submitSalaryBatch(employees, setSubmitting);
+      const result: any = await submitSalaryBatch(employeesData, setSubmitting, totalSalary);
       setCurrentBatchId(result.batchId);
       setTxHash(result.transactionHash);
-
-      // Clear the employee list after successful submission
-      setEmployees([]);
+      toast.success('Salary batch submitted successfully!');
+      setEmployees([]); // Clear the list after successful submission
     } catch (error: any) {
-      setSubmitting(null);
       console.error('Error submitting salary batch:', error.message);
-      alert('Failed to submit salary batch. Please try again.');
+      toast.error(error.message);
     } finally {
       setSubmitting(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-amber-900 py-8">
+    <div className="min-h-screen bg-amber-200 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -53,22 +84,35 @@ const SalaryDistribution: React.FC = () => {
           </h1>
           <p className="mt-2 text-gray-600 text-bold text-sm">
             Distribute salaries to multiple employees with encrypted data.{' '}
-            <span className="text-amber-400">Powered by zama FHEVM</span>
+            <span className="text-amber-800">Powered by zama FHEVM</span>
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <EmployeeForm onAddEmployee={handleAddEmployee} />
+          <EmployeeForm
+            onAddEmployee={handleAddEmployee}
+            onUpdateEmployee={handleUpdateEmployee}
+            onRemoveEmployee={handleRemoveEmployee}
+            seIsEncrypting={seIsEncrypting}
+          />
           <EmployeeList employees={employees} onRemoveEmployee={handleRemoveEmployee} />
         </div>
+
+        <span className="text-red-500 font-bold text-xs py-5 text-center">
+          {submitting && submitting}
+        </span>
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <button
             onClick={handleSubmitBatch}
-            disabled={submitting ? true : false || employees.length === 0}
+            disabled={
+              submitting !== null ||
+              employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
+              isEncrypting
+            }
             className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-              submitting || employees.length === 0
-                ? 'bg-amber-200 cursor-not-allowed'
+              submitting !== null || employees.filter((emp: any) => emp.isEncrypted).length === 0
+                ? 'bg-amber-300 cursor-not-allowed'
                 : 'bg-amber-400 hover:bg-amber-500 hover:cursor-pointer'
             }`}
           >
