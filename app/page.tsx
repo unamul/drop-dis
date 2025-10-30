@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { FaBookOpen, FaVideo, FaVideoSlash } from 'react-icons/fa';
 import VideoModal from '@/components/VideoModal';
 import AnimatedIllustration from '@/components/AnimatedIllustration';
+import WalletButton from '@/components/WalletConnect';
 
 const SalaryDistribution: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
@@ -195,7 +196,7 @@ const SalaryDistribution: React.FC = () => {
       <Link
         href="https://github.com/unamul/drop-dis/blob/main/README.md"
         className="
-        fixed right-6 top-6 z-50
+        fixed right-6 bottom-6 z-50
         flex items-center gap-2
         bg-orange-500 text-white font-medium
         px-4 py-2 rounded-full shadow-lg
@@ -206,6 +207,10 @@ const SalaryDistribution: React.FC = () => {
         <FaBookOpen size={18} />
         <span>Read Docs</span>
       </Link>
+
+      <div className="fixed top-2 right-2">
+        <WalletButton />
+      </div>
 
       {/* video --------  */}
       <VideoModal
