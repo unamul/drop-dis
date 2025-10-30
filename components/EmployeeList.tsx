@@ -13,7 +13,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, onRemoveEmployee
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4 text-amber-300">Employee List</h2>
+      <h2 className="text-xl font-bold mb-4 text-orange-300">Employee List</h2>
       {employees.length === 0 ? (
         <p className="text-gray-500">No employees added yet</p>
       ) : (

@@ -86,7 +86,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4 text-amber-300">Add Employee</h2>
+      <h2 className="text-xl font-bold mb-4 text-orange-300">Add Employee</h2>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
@@ -118,7 +118,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
         <button
           type="submit"
           disabled={isAdding}
-          className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hover:cursor-pointer"
+          className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hover:cursor-pointer"
         >
           {isAdding ? 'Encrypting... please wait' : 'Add'}
         </button>

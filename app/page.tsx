@@ -8,7 +8,9 @@ import BatchStatus from '../components/BatchStatus';
 import { EmployeeData, submitSalaryBatch } from '../utils/contract';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { FaBookOpen } from 'react-icons/fa';
+import { FaBookOpen, FaVideo, FaVideoSlash } from 'react-icons/fa';
+import VideoModal from '@/components/VideoModal';
+import AnimatedIllustration from '@/components/AnimatedIllustration';
 
 const SalaryDistribution: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
@@ -21,6 +23,10 @@ const SalaryDistribution: React.FC = () => {
   const [encryptedAmounts, setEncryptedAmounts] = useState<any>([]);
   const [addressProofs, setAddressProofs] = useState<any>([]);
   const [amountProofs, setAmountProofs] = useState<any>([]);
+
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+
+  const videoId: any = process.env.NEXT_PUBLIC_VIDEOID;
 
   const handleAddEmployee = (newEmployee: EmployeeData) => {
     setEmployees((prev) => [...prev, newEmployee]);
@@ -99,48 +105,57 @@ const SalaryDistribution: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-amber-100 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-orange-100 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            <span className="text-amber-700">Drop Dis</span> (Encrypted Salary Distribution)
+            <span className="text-orange-500">Drop Dis</span> (Encrypted Salary Distribution)
           </h1>
           <p className="mt-2 text-gray-600 text-bold text-sm">
             Distribute salaries to multiple employees with encrypted data.{' '}
-            <span className="text-amber-800">Powered by zama FHEVM</span>
+            <span className="text-orange-500">Powered by zama FHEVM</span>
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <EmployeeForm
-            onAddEmployee={handleAddEmployee}
-            onUpdateEmployee={handleUpdateEmployee}
-            onRemoveEmployee={handleRemoveEmployee}
-            seIsEncrypting={seIsEncrypting}
-          />
-          <EmployeeList employees={employees} onRemoveEmployee={handleRemoveEmployee} />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-x-4 items-start">
+          <div className="lg:col-span-4 lg:pt-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <EmployeeForm
+                onAddEmployee={handleAddEmployee}
+                onUpdateEmployee={handleUpdateEmployee}
+                onRemoveEmployee={handleRemoveEmployee}
+                seIsEncrypting={seIsEncrypting}
+              />
+              <EmployeeList employees={employees} onRemoveEmployee={handleRemoveEmployee} />
+            </div>
 
-        <span className="text-red-500 font-bold text-xs py-5 text-center">
-          {submitting && submitting}
-        </span>
+            <span className="text-red-500 font-bold text-xs py-5 text-center">
+              {submitting && submitting}
+            </span>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <button
-            onClick={handleSubmitBatch}
-            disabled={
-              submitting !== null ||
-              employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
-              isEncrypting
-            }
-            className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-              submitting !== null || employees.filter((emp: any) => emp.isEncrypted).length === 0
-                ? 'bg-amber-300 cursor-not-allowed'
-                : 'bg-amber-400 hover:bg-amber-500 hover:cursor-pointer'
-            }`}
-          >
-            {submitting ? submitting : 'Distribute Now'}
-          </button>
+            <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+              <button
+                onClick={handleSubmitBatch}
+                disabled={
+                  submitting !== null ||
+                  employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
+                  isEncrypting
+                }
+                className={`w-full py-3 px-4 rounded-md text-white font-medium ${
+                  submitting !== null ||
+                  employees.filter((emp: any) => emp.isEncrypted).length === 0
+                    ? 'bg-orange-300 cursor-not-allowed'
+                    : 'bg-orange-400 hover:bg-orange-500 hover:cursor-pointer'
+                }`}
+              >
+                {submitting ? submitting : 'Distribute Now'}
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden lg:block lg:col-span-2">
+            <AnimatedIllustration />
+          </div>
         </div>
 
         {txHash && (
@@ -161,6 +176,22 @@ const SalaryDistribution: React.FC = () => {
         <BatchStatus batchId={currentBatchId} />
       </div>
 
+      <button
+        onClick={() => setIsVideoModalOpen(true)}
+        className="
+        fixed left-6 top-6 z-50
+        flex items-center gap-2
+        bg-green-500 text-white font-medium
+        px-4 py-2 rounded-full shadow-lg
+        hover:bg-green-600 transition-all duration-300
+        active:scale-95
+        hover:cursor-pointer
+      "
+      >
+        <FaVideo size={18} />
+        <span>Watch Video</span>
+      </button>
+
       <Link
         href="https://github.com/unamul/drop-dis/blob/main/README.md"
         className="
@@ -175,6 +206,13 @@ const SalaryDistribution: React.FC = () => {
         <FaBookOpen size={18} />
         <span>Read Docs</span>
       </Link>
+
+      {/* video --------  */}
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        videoId={videoId}
+      />
     </div>
   );
 };
