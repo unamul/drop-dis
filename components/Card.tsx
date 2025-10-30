@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Card.tsx
 import React, { useEffect } from 'react';
-import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa'; // Using react-icons for status icons
+import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 interface CardProps {
   employee: any;

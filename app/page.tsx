@@ -7,6 +7,8 @@ import EmployeeList from '../components/EmployeeList';
 import BatchStatus from '../components/BatchStatus';
 import { EmployeeData, submitSalaryBatch } from '../utils/contract';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { FaBookOpen } from 'react-icons/fa';
 
 const SalaryDistribution: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
@@ -69,14 +71,35 @@ const SalaryDistribution: React.FC = () => {
       setEmployees([]); // Clear the list after successful submission
     } catch (error: any) {
       console.error('Error submitting salary batch:', error.message);
-      toast.error(error.message);
+      let readableError = 'Transaction failed';
+
+      // ethers v6: error.info / error.shortMessage / error.reason
+      if (error.reason) {
+        readableError = error.reason;
+      } else if (error.shortMessage) {
+        readableError = error.shortMessage;
+      } else if (error.info?.error?.message) {
+        readableError = error.info.error.message;
+      } else if (error.data?.message) {
+        readableError = error.data.message;
+      } else if (error.message?.includes('reverted')) {
+        readableError = 'Transaction reverted — check contract logic or input data';
+      }
+
+      // optional: make it cleaner
+      readableError = readableError
+        .replace(/execution reverted(:)?/i, '')
+        .replace(/\(error=.*\)/i, '')
+        .trim();
+
+      toast.error(readableError);
     } finally {
       setSubmitting(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-amber-200 py-8">
+    <div className="min-h-screen bg-amber-100 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -137,6 +160,21 @@ const SalaryDistribution: React.FC = () => {
 
         <BatchStatus batchId={currentBatchId} />
       </div>
+
+      <Link
+        href="https://github.com/unamul/drop-dis/blob/main/README.md"
+        className="
+        fixed right-6 top-6 z-50
+        flex items-center gap-2
+        bg-orange-500 text-white font-medium
+        px-4 py-2 rounded-full shadow-lg
+        hover:bg-orange-600 transition-all duration-300
+        active:scale-95
+      "
+      >
+        <FaBookOpen size={18} />
+        <span>Read Docs</span>
+      </Link>
     </div>
   );
 };

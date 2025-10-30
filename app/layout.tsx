@@ -26,7 +26,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased `}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}>
+        <div className="">{children}</div>
         <Toaster
           toastOptions={{
             style: {
@@ -36,7 +37,6 @@ export default function RootLayout({
           }}
         />
         <FHEVM />
-        {children}
       </body>
     </html>
   );
