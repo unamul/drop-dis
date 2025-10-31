@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Card.tsx
-import React, { useEffect } from 'react';
+import React from 'react';
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 interface CardProps {

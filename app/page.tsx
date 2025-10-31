@@ -8,7 +8,7 @@ import BatchStatus from '../components/BatchStatus';
 import { EmployeeData, submitSalaryBatch } from '../utils/contract';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { FaBookOpen, FaVideo, FaVideoSlash } from 'react-icons/fa';
+import { FaBookOpen, FaVideo } from 'react-icons/fa';
 import VideoModal from '@/components/VideoModal';
 import AnimatedIllustration from '@/components/AnimatedIllustration';
 import WalletButton from '@/components/WalletConnect';
@@ -74,7 +74,9 @@ const SalaryDistribution: React.FC = () => {
       const result: any = await submitSalaryBatch(employeesData, setSubmitting, totalSalary);
       setCurrentBatchId(result.batchId);
       setTxHash(result.transactionHash);
-      toast.success('Salary batch submitted successfully!');
+      toast.success('Salary batch submitted successfully!', {
+        style: { backgroundColor: 'green' },
+      });
       setEmployees([]); // Clear the list after successful submission
     } catch (error: any) {
       console.error('Error submitting salary batch:', error.message);
@@ -106,20 +108,23 @@ const SalaryDistribution: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-orange-100 py-8">
+    <div className="min-h-screen bg-orange-800 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            <span className="text-orange-500">Drop Dis</span> (Encrypted Salary Distribution)
+          <h1 className="text-3xl font-bold text-gray-300">
+            <span className="text-white shadow-amber-400 shadow-sm bg-orange-400 rounded-2xl px-6 font-bold">
+              Drop Dis
+            </span>{' '}
+            Encrypted Salary Distribution
           </h1>
-          <p className="mt-2 text-gray-600 text-bold text-sm">
+          <p className="mt-2 text-gray-200 text-bold text-sm">
             Distribute salaries to multiple employees with encrypted data.{' '}
-            <span className="text-orange-500">Powered by zama FHEVM</span>
+            <span className="text-amber-500">Powered by zama FHEVM</span>
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-x-4 items-start">
-          <div className="lg:col-span-4 lg:pt-20">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-x-4 items-start">
+          <div className="lg:col-span-5 lg:pt-20">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <EmployeeForm
                 onAddEmployee={handleAddEmployee}

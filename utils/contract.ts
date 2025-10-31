@@ -75,6 +75,45 @@ export const encryptEmployeeData = async (address: string, salary: number) => {
   }
 };
 
+export async function switchToSepolia() {
+  if (!(window as any).ethereum) {
+    throw new Error("MetaMask not detected");
+  }
+
+  const sepoliaChainId = "0xaa36a7";
+
+  try {
+    await (window as any).ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: sepoliaChainId }],
+    });
+  } catch (error: any) {
+    if (error.code === 4902) {
+      await (window as any).ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: sepoliaChainId,
+            chainName: "Ethereum Sepolia Testnet",
+            nativeCurrency: {
+              name: "Sepolia Ether",
+              symbol: "ETH",
+              decimals: 18,
+            },
+            rpcUrls: [
+              "https://sepolia.infura.io/v3/531b54af7cd34bf3b2081ec8e462da35",
+            ],
+            blockExplorerUrls: ["https://sepolia.etherscan.io"],
+          },
+        ],
+      });
+    } else {
+      console.error("Network switch failed:", error);
+      throw error;
+    }
+  }
+}
+
 export const submitSalaryBatch = async (
   employeesData: any,
   setResponse: any,
@@ -98,7 +137,7 @@ export const submitSalaryBatch = async (
     (item: any) => item?.data
   );
 
-  console.log({ amountProofs });
+  await switchToSepolia();
 
   // Submit to contract
   const tx = await contract.submitSalaryBatch(
@@ -109,7 +148,7 @@ export const submitSalaryBatch = async (
     {
       value: parseEther(totalAmount.toString()),
     }
-  );
+  );  
 
   const receipt = await tx.wait();
 

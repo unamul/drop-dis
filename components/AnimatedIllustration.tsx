@@ -5,7 +5,7 @@ import React from 'react';
 const AnimatedIllustration: React.FC = () => {
   return (
     <div className="relative w-full h-full min-h-[600px] flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-orange-100 to-yellow-100 opacity-50"></div>
+      <div className="absolute inset-0 from-orange-600 via-orange-100 to-yellow-100 opacity-50"></div>
 
       <div className="relative z-10">
         <div className="relative animate-pulse">
@@ -50,9 +50,9 @@ const AnimatedIllustration: React.FC = () => {
       </div>
 
       {/* Background Orbs */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-      <div className="absolute top-10 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+      {/* <div className="absolute top-10 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+      <div className="absolute top-10 right-10 w-72 h-72 bg-orange-600 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div> */}
     </div>
   );
 };

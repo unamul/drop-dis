@@ -29,6 +29,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     } else {
       seIsEncrypting(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdding]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -23,6 +23,7 @@
     "@zama-fhe/relayer-sdk": "^0.2.0",
     "encrypted-types": "^0.0.4",
     "ethers": "^6.15.0",
+    "framer-motion": "^12.23.24",
     "install": "^0.13.0",
     "next": "16.0.0",
     "react": "19.2.0",

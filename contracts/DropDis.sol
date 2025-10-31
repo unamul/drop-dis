@@ -3,67 +3,108 @@ pragma solidity ^0.8.24;
 
 import {FHE, eaddress, euint64, externalEaddress, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract DropDis is SepoliaConfig {
-    address public owner;
+    address public immutable owner;
+
+    uint256 public constant MAX_BATCH_SIZE = 50;
+
+    enum RequestKind {
+        Unknown,
+        Addresses,
+        Amounts
+    }
 
     struct EncryptedEmployee {
-        eaddress employeeAddress;
-        euint64 salaryAmount;
+        eaddress addr;
+        euint64 amount;
     }
 
     struct DecryptedEmployee {
-        address employeeAddress;
-        uint256 salaryAmount;
+        address employee;
+        uint256 amount;
     }
 
     struct SalaryBatch {
         uint256 batchId;
         address submitter;
-        uint256 totalAmount;
         uint256 employeeCount;
+        uint256 totalAmount;
+        uint256 deposit;
         bool isProcessed;
-        bool addressDecrypted;
-        bool amountDecrypted;
-        mapping(uint256 => DecryptedEmployee) employees;
+        bool addressesDecrypted;
+        bool amountsDecrypted;
     }
 
-    // Mapping from batch ID to salary batch
+    // --- Storage ---
+    uint256 public nextBatchId = 1;
+
+    // encrypted handles per-batch
+    mapping(uint256 => mapping(uint256 => EncryptedEmployee))
+        private encryptedEmployees;
+
+    // decrypted employees stored as arrays to simplify iteration and reduce per-item storage complexity
+    mapping(uint256 => DecryptedEmployee[]) private decryptedEmployees;
+
     mapping(uint256 => SalaryBatch) public salaryBatches;
 
-    // Array of encrypted employees for each batch
-    mapping(uint256 => EncryptedEmployee[]) public encryptedEmployees;
+    // request tracking
+    mapping(uint256 => uint256) public requestIdToBatchId;
+    mapping(uint256 => RequestKind) public requestKind;
 
-    // Counter for batch IDs
-    uint256 public nextBatchId;
+    // failed transfers tracking (batchId => list of failed recipients with amounts)
+    mapping(uint256 => address[]) public failedRecipients;
+    mapping(uint256 => uint256[]) public failedAmounts;
 
-    // Events
+    // --- Events ---
     event SalaryBatchSubmitted(
         uint256 indexed batchId,
         address indexed submitter,
-        uint256 employeeCount
+        uint256 employeeCount,
+        uint256 deposit
+    );
+    event DecryptionRequested(
+        uint256 indexed batchId,
+        uint256 requestId,
+        RequestKind kind
     );
     event AddressesDecrypted(uint256 indexed batchId);
-    event AmountsDecrypted(uint256 indexed batchId);
+    event AmountsDecrypted(uint256 indexed batchId, uint256 totalAmount);
     event SalaryDistributed(
         uint256 indexed batchId,
         address indexed employee,
         uint256 amount
     );
-    event BatchProcessed(uint256 indexed batchId, uint256 totalAmount);
+    event SalaryTransferFailed(
+        uint256 indexed batchId,
+        address indexed employee,
+        uint256 amount
+    );
+    event BatchProcessed(
+        uint256 indexed batchId,
+        uint256 totalAmount,
+        uint256 failedCount
+    );
+    event OwnerWithdrawal(address indexed owner, uint256 amount);
 
-    constructor() {
-        owner = msg.sender;
-        nextBatchId = 1;
+    // simple reentrancy guard
+    bool private _locked;
+    modifier nonReentrant() {
+        require(!_locked, "Reentrant");
+        _locked = true;
+        _;
+        _locked = false;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
+        require(msg.sender == owner, "Only owner");
         _;
     }
 
-    // Submit a batch of encrypted employee data for salary distribution
+    constructor() {
+        owner = msg.sender;
+    }
 
     function submitSalaryBatch(
         externalEaddress[] calldata encryptedAddresses,
@@ -71,24 +112,23 @@ contract DropDis is SepoliaConfig {
         bytes[] calldata addressProofs,
         bytes[] calldata amountProofs
     ) external payable {
-        require(
-            encryptedAddresses.length == encryptedAmounts.length,
-            "Arrays must have the same length"
-        );
-        require(encryptedAddresses.length > 0, "Empty batch not allowed");
-        require(encryptedAddresses.length <= 50, "Batch size too large"); // limit for gas
+        uint256 len = encryptedAddresses.length;
+        require(len == encryptedAmounts.length, "Length mismatch");
+        require(len > 0 && len <= MAX_BATCH_SIZE, "Invalid batch size");
 
         uint256 batchId = nextBatchId++;
+
         SalaryBatch storage batch = salaryBatches[batchId];
         batch.batchId = batchId;
         batch.submitter = msg.sender;
-        batch.employeeCount = encryptedAddresses.length;
+        batch.employeeCount = len;
         batch.isProcessed = false;
-        batch.addressDecrypted = false;
-        batch.amountDecrypted = false;
+        batch.addressesDecrypted = false;
+        batch.amountsDecrypted = false;
+        batch.deposit = msg.value;
 
-        // Store encrypted data
-        for (uint256 i = 0; i < encryptedAddresses.length; i++) {
+        // store encrypted handles and grant transient permissions to this contract
+        for (uint256 i = 0; i < len; ++i) {
             eaddress addr = FHE.fromExternal(
                 encryptedAddresses[i],
                 addressProofs[i]
@@ -98,89 +138,110 @@ contract DropDis is SepoliaConfig {
                 amountProofs[i]
             );
 
-            encryptedEmployees[batchId].push(
-                EncryptedEmployee({employeeAddress: addr, salaryAmount: amount})
-            );
+            encryptedEmployees[batchId][i] = EncryptedEmployee({
+                addr: addr,
+                amount: amount
+            });
 
-            // Allow the contract to decrypt these values
             FHE.allowThis(addr);
             FHE.allowThis(amount);
         }
 
-        emit SalaryBatchSubmitted(
-            batchId,
-            msg.sender,
-            encryptedAddresses.length
-        );
+        emit SalaryBatchSubmitted(batchId, msg.sender, len, msg.value);
 
-        // Start decryption process
         _startDecryptionProcess(batchId);
     }
 
-    // Start the decryption process for a batch
-    function _startDecryptionProcess(uint256 batchId) internal {
-        // Prepare arrays for batch decryption
-        bytes32[] memory addressCiphertexts = new bytes32[](
-            encryptedEmployees[batchId].length
-        );
-        bytes32[] memory amountCiphertexts = new bytes32[](
-            encryptedEmployees[batchId].length
-        );
+    receive() external payable {}
 
-        for (uint256 i = 0; i < encryptedEmployees[batchId].length; i++) {
-            addressCiphertexts[i] = FHE.toBytes32(
-                encryptedEmployees[batchId][i].employeeAddress
-            );
-            amountCiphertexts[i] = FHE.toBytes32(
-                encryptedEmployees[batchId][i].salaryAmount
-            );
-        }
-
-        // Request decryption for addresses
-        FHE.requestDecryption(
-            addressCiphertexts,
-            this.addressDecryptCallback.selector
-        );
-
-        // Request decryption for amounts
-        FHE.requestDecryption(
-            amountCiphertexts,
-            this.amountDecryptCallback.selector
-        );
-
-        salaryBatches[batchId].batchId = batchId; // Using batchId as a temporary store for reqId
+    // Owner: withdraw any excess ETH not reserved for pending batches
+    function withdrawExcess() external onlyOwner nonReentrant {
+        uint256 reserved = _totalReserved();
+        uint256 bal = address(this).balance;
+        require(bal > reserved, "No excess balance");
+        uint256 amount = bal - reserved;
+        (bool ok, ) = payable(owner).call{value: amount}("");
+        require(ok, "Withdraw failed");
+        emit OwnerWithdrawal(owner, amount);
     }
 
+    // --- View helpers ---
+
+    function getDecryptedEmployee(
+        uint256 batchId,
+        uint256 idx
+    ) external view returns (address employee, uint256 amount) {
+        require(
+            salaryBatches[batchId].addressesDecrypted &&
+                salaryBatches[batchId].amountsDecrypted,
+            "Not decrypted"
+        );
+        DecryptedEmployee[] storage arr = decryptedEmployees[batchId];
+        require(idx < arr.length, "Index OOB");
+        DecryptedEmployee storage e = arr[idx];
+        return (e.employee, e.amount);
+    }
+
+    function getFailedTransfers(
+        uint256 batchId
+    ) external view returns (address[] memory, uint256[] memory) {
+        return (failedRecipients[batchId], failedAmounts[batchId]);
+    }
+
+    // --- Internal / FHE integration ---
+
+    function _startDecryptionProcess(uint256 batchId) internal {
+        uint256 len = salaryBatches[batchId].employeeCount;
+        bytes32[] memory addrCts = new bytes32[](len);
+        bytes32[] memory amtCts = new bytes32[](len);
+
+        for (uint256 i = 0; i < len; ++i) {
+            addrCts[i] = FHE.toBytes32(encryptedEmployees[batchId][i].addr);
+            amtCts[i] = FHE.toBytes32(encryptedEmployees[batchId][i].amount);
+        }
+
+        uint256 addrReq = FHE.requestDecryption(
+            addrCts,
+            this.addressDecryptCallback.selector
+        );
+        requestIdToBatchId[addrReq] = batchId;
+        requestKind[addrReq] = RequestKind.Addresses;
+        emit DecryptionRequested(batchId, addrReq, RequestKind.Addresses);
+
+        uint256 amtReq = FHE.requestDecryption(
+            amtCts,
+            this.amountDecryptCallback.selector
+        );
+        requestIdToBatchId[amtReq] = batchId;
+        requestKind[amtReq] = RequestKind.Amounts;
+        emit DecryptionRequested(batchId, amtReq, RequestKind.Amounts);
+    }
+
+    // Callbacks invoked by the oracle; signatures checked inside
     function addressDecryptCallback(
         uint256 requestId,
         bytes memory cleartexts,
         bytes memory decryptionProof
     ) external {
-        // Verify the decryption
         FHE.checkSignatures(requestId, cleartexts, decryptionProof);
+        uint256 batchId = requestIdToBatchId[requestId];
+        require(batchId != 0, "Invalid request");
 
-        // Find the batch ID associated with this request
-        uint256 batchId = _findBatchIdByRequestId(requestId);
-        require(batchId > 0, "Invalid request ID");
+        address[] memory addrs = abi.decode(cleartexts, (address[]));
+        uint256 len = addrs.length;
 
-        // Decode the addresses
-        address[] memory decryptedAddresses = abi.decode(
-            cleartexts,
-            (address[])
-        );
-
-        // Store the decrypted addresses
-        for (uint256 i = 0; i < decryptedAddresses.length; i++) {
-            salaryBatches[batchId]
-                .employees[i]
-                .employeeAddress = decryptedAddresses[i];
+        // ensure the decryptedEmployees array has the appropriate size
+        DecryptedEmployee[] storage arr = decryptedEmployees[batchId];
+        if (arr.length == 0) {
+            for (uint256 i = 0; i < len; ++i)
+                arr.push(DecryptedEmployee({employee: addrs[i], amount: 0}));
+        } else {
+            for (uint256 i = 0; i < len; ++i) arr[i].employee = addrs[i];
         }
 
-        // Mark addresses as decrypted
-        salaryBatches[batchId].addressDecrypted = true;
+        salaryBatches[batchId].addressesDecrypted = true;
         emit AddressesDecrypted(batchId);
 
-        // Check if both addresses and amounts are decrypted
         _checkAndProcessBatch(batchId);
     }
 
@@ -189,141 +250,99 @@ contract DropDis is SepoliaConfig {
         bytes memory cleartexts,
         bytes memory decryptionProof
     ) external {
-        // Verify the decryption
         FHE.checkSignatures(requestId, cleartexts, decryptionProof);
+        uint256 batchId = requestIdToBatchId[requestId];
+        require(batchId != 0, "Invalid request");
 
-        // Find the batch ID associated with this request
-        uint256 batchId = _findBatchIdByRequestId(requestId);
-        require(batchId > 0, "Invalid request ID");
+        uint64[] memory amounts = abi.decode(cleartexts, (uint64[]));
+        uint256 len = amounts.length;
 
-        // Decode the amounts
-        uint64[] memory decryptedAmounts = abi.decode(cleartexts, (uint64[]));
+        DecryptedEmployee[] storage arr = decryptedEmployees[batchId];
+        uint256 total = 0;
 
-        // Store the decrypted amounts and calculate total
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < decryptedAmounts.length; i++) {
-            salaryBatches[batchId].employees[i].salaryAmount = decryptedAmounts[
-                i
-            ];
-            totalAmount += decryptedAmounts[i];
+        if (arr.length == 0) {
+            // addresses not decrypted yet: create placeholders
+            for (uint256 i = 0; i < len; ++i) {
+                arr.push(
+                    DecryptedEmployee({
+                        employee: address(0),
+                        amount: amounts[i]
+                    })
+                );
+                total += amounts[i];
+            }
+        } else {
+            for (uint256 i = 0; i < len; ++i) {
+                arr[i].amount = amounts[i];
+                total += amounts[i];
+            }
         }
 
-        // Store the total amount
-        salaryBatches[batchId].totalAmount = totalAmount;
+        salaryBatches[batchId].totalAmount = total;
+        salaryBatches[batchId].amountsDecrypted = true;
+        emit AmountsDecrypted(batchId, total);
 
-        // Mark amounts as decrypted
-        salaryBatches[batchId].amountDecrypted = true;
-        emit AmountsDecrypted(batchId);
-
-        // Check if both addresses and amounts are decrypted
         _checkAndProcessBatch(batchId);
     }
 
     function _checkAndProcessBatch(uint256 batchId) internal {
         SalaryBatch storage batch = salaryBatches[batchId];
-
         if (
-            batch.addressDecrypted &&
-            batch.amountDecrypted &&
+            batch.addressesDecrypted &&
+            batch.amountsDecrypted &&
             !batch.isProcessed
         ) {
-            console.log("GRETTTTTTTTTTT", batchId);
-            // Process the salary distribution
             _processSalaryDistribution(batchId);
         }
     }
 
-    function _processSalaryDistribution(uint256 batchId) internal {
+    function _processSalaryDistribution(uint256 batchId) internal nonReentrant {
         SalaryBatch storage batch = salaryBatches[batchId];
+        require(!batch.isProcessed, "Already processed");
 
-        require(
-            batch.totalAmount <= address(this).balance,
-            "Insufficient contract balance"
-        );
+        uint256 total = batch.totalAmount;
+        require(batch.deposit >= total, "Insufficient deposit for batch");
 
-        // Distribute salaries
-        for (uint256 i = 0; i < batch.employeeCount; i++) {
-            address employee = batch.employees[i].employeeAddress;
-            uint256 amount = batch.employees[i].salaryAmount;
-
-            require(employee != address(0), "Invalid employee address");
-            require(amount > 0, "Invalid salary amount");
-
-            // Transfer the salary
-            (bool success, ) = payable(employee).call{value: amount}("");
-            require(success, "Salary transfer failed");
-
-            emit SalaryDistributed(batchId, employee, amount);
-        }
-
-        // Mark the batch as processed
+        // mark as processed early to avoid double-processing
         batch.isProcessed = true;
-        emit BatchProcessed(batchId, batch.totalAmount);
-    }
 
-    function _findBatchIdByRequestId(
-        uint256 requestId
-    ) internal view returns (uint256) {
-        // In a real implementation, you would store the mapping from request ID to batch ID
-        // For simplicity, we'll iterate through the batches
-        for (uint256 i = 1; i < nextBatchId; i++) {
-            if (salaryBatches[i].batchId == requestId) {
-                return i;
+        DecryptedEmployee[] storage arr = decryptedEmployees[batchId];
+        uint256 failed = 0;
+
+        for (uint256 i = 0; i < arr.length; ++i) {
+            address to = arr[i].employee;
+            uint256 amount = arr[i].amount;
+
+            if (to == address(0) || amount == 0) {
+                // invalid entry - count as failed and continue
+                failedRecipients[batchId].push(to);
+                failedAmounts[batchId].push(amount);
+                failed++;
+                continue;
+            }
+
+            (bool ok, ) = payable(to).call{value: amount}("");
+            if (ok) {
+                emit SalaryDistributed(batchId, to, amount);
+            } else {
+                // record failure but do not revert entire batch
+                failedRecipients[batchId].push(to);
+                failedAmounts[batchId].push(amount);
+                emit SalaryTransferFailed(batchId, to, amount);
+                failed++;
             }
         }
-        return 0;
+
+        batch.deposit = 0;
+
+        emit BatchProcessed(batchId, total, failed);
     }
 
-    // Withdraw contract balance (only owner)
-
-    function withdraw() external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No funds to withdraw");
-
-        (bool success, ) = payable(owner).call{value: balance}("");
-        require(success, "Withdrawal failed");
+    // compute total reserved deposits across all pending batches (gas-heavy if many batches)
+    function _totalReserved() internal view returns (uint256 reserved) {
+        uint256 curr = nextBatchId;
+        for (uint256 i = 1; i < curr; ++i) {
+            reserved += salaryBatches[i].deposit;
+        }
     }
-
-    function getBatchStatus(
-        uint256 batchId
-    )
-        external
-        view
-        returns (
-            bool isProcessed,
-            bool addressDecrypted,
-            bool amountDecrypted,
-            uint256 totalAmount
-        )
-    {
-        SalaryBatch storage batch = salaryBatches[batchId];
-        return (
-            batch.isProcessed,
-            batch.addressDecrypted,
-            batch.amountDecrypted,
-            batch.totalAmount
-        );
-    }
-
-    function getDecryptedEmployee(
-        uint256 batchId,
-        uint256 employeeIndex
-    ) external view returns (address employeeAddress, uint256 salaryAmount) {
-        require(
-            salaryBatches[batchId].addressDecrypted &&
-                salaryBatches[batchId].amountDecrypted,
-            "Data not decrypted yet"
-        );
-        require(
-            employeeIndex < salaryBatches[batchId].employeeCount,
-            "Invalid employee index"
-        );
-
-        DecryptedEmployee storage employee = salaryBatches[batchId].employees[
-            employeeIndex
-        ];
-        return (employee.employeeAddress, employee.salaryAmount);
-    }
-
-    receive() external payable {}
 }

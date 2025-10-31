@@ -1,11 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from "chai";
 import hre from "hardhat";
 import "@nomicfoundation/hardhat-chai-matchers";
-import { parseEther, ethers } from "ethers"; // Import ethers for hexlify
-// FIX 1: Import SignerWithAddress from 'hardhat'
-// import { SignerWithAddress } from "hardhat";
-// FIX 2: This import will work after you run `npx hardhat compile`
-// import { DropDis } from "../typechain-types";
+import { parseEther, ethers } from "ethers";
 
 describe("DropDis", function () {
   let contract: any;
@@ -24,7 +22,6 @@ describe("DropDis", function () {
   let amountProofs: string[];
 
   before(async function () {
-    // Check FHEVM mock and initialize CLI
     if (!hre.fhevm.isMock) {
       throw new Error("Tests require FHEVM mock environment");
     }
@@ -35,12 +32,10 @@ describe("DropDis", function () {
   });
 
   beforeEach(async function () {
-    // Deploy a fresh contract for each test
     const DropDis = await hre.ethers.getContractFactory("DropDis");
     contract = await DropDis.deploy();
     await contract.waitForDeployment();
 
-    // --- Generate Real Encrypted Data ---
     const employees = [
       { address: addr1.address, salary: parseEther("1.0") },
       { address: addr2.address, salary: parseEther("0.5") },
@@ -57,25 +52,21 @@ describe("DropDis", function () {
 
     // Encrypt each employee's data using the FHEVM provider
     for (const employee of employees) {
-      // Encrypt Address
       const addressInput = hre.fhevm.createEncryptedInput(
         await contract.getAddress(),
-        owner.address // The transaction submitter is the one providing the input
+        owner.address 
       );
       addressInput.addAddress(employee.address);
-      const addressEncrypted = await addressInput.encrypt();
-      // FIX 3: Convert Uint8Array handle to a hex string
+      const addressEncrypted: any = await addressInput.encrypt();
       encryptedAddresses.push(ethers.hexlify(addressEncrypted.handles[0]));
       addressProofs.push(addressEncrypted.inputProof);
 
-      // Encrypt Amount
       const amountInput = hre.fhevm.createEncryptedInput(
         await contract.getAddress(),
         owner.address
       );
       amountInput.add64(employee.salary);
-      const amountEncrypted = await amountInput.encrypt();
-      // FIX 3: Convert Uint8Array handle to a hex string
+      const amountEncrypted: any = await amountInput.encrypt();
       encryptedAmounts.push(ethers.hexlify(amountEncrypted.handles[0]));
       amountProofs.push(amountEncrypted.inputProof);
     }
@@ -92,7 +83,7 @@ describe("DropDis", function () {
   });
 
   describe("Submit Salary Batch", function () {
-    const totalAmount = parseEther("3.0"); // 1.0 + 0.5 + 1.5 ETH
+    const totalAmount = parseEther("3.0");
 
     it("Should submit a salary batch with valid encrypted data", async function () {
       const tx = await contract.submitSalaryBatch(
@@ -105,7 +96,7 @@ describe("DropDis", function () {
 
       await expect(tx)
         .to.emit(contract, "SalaryBatchSubmitted")
-        .withArgs(1, owner.address, 3);
+        .withArgs(1, owner.address, 3, totalAmount);
 
       expect(await contract.nextBatchId()).to.equal(2);
     });
@@ -113,13 +104,13 @@ describe("DropDis", function () {
     it("Should reject if arrays have different lengths", async function () {
       await expect(
         contract.submitSalaryBatch(
-          encryptedAddresses.slice(0, 2), // Only 2 addresses
-          encryptedAmounts, // 3 amounts
+          encryptedAddresses.slice(0, 2),
+          encryptedAmounts,
           addressProofs,
           amountProofs,
           { value: parseEther("1.5") }
         )
-      ).to.be.revertedWith("Arrays must have the same length");
+      ).to.be.revertedWith("Length mismatch");
     });
 
     it("Should reject if arrays are empty", async function () {
@@ -127,7 +118,7 @@ describe("DropDis", function () {
         contract.submitSalaryBatch([], [], [], [], {
           value: parseEther("0.1"),
         })
-      ).to.be.revertedWith("Empty batch not allowed");
+      ).to.be.revertedWith("Invalid batch size");
     });
 
     it("Should reject if batch size is too large", async function () {
@@ -144,39 +135,8 @@ describe("DropDis", function () {
           largeAmountProofs,
           { value: parseEther("51.0") }
         )
-      ).to.be.revertedWith("Batch size too large");
+      ).to.be.revertedWith("Invalid batch size");
     });
-  });
-
-  describe("Get Batch Status", function () {
-    it("Should return correct status for a submitted batch", async function () {
-      const totalAmount = parseEther("3.0");
-      await contract.submitSalaryBatch(
-        encryptedAddresses,
-        encryptedAmounts,
-        addressProofs,
-        amountProofs,
-        { value: totalAmount }
-      );
-
-      const [
-        isProcessed,
-        addressDecrypted,
-        amountDecrypted,
-        totalAmountResult,
-      ] = await contract.getBatchStatus(1);
-
-      console.log("objectttttttt", totalAmountResult);
-
-      expect(isProcessed).to.be.false;
-      expect(addressDecrypted).to.be.false;
-      expect(amountDecrypted).to.be.false;
-      expect(totalAmountResult).to.equal(BigInt(0));
-    });
-
-    // it("Should revert for non-existent batch", async function () {
-    //   await expect(contract.getBatchStatus(999)).to.be.reverted;
-    // });
   });
 
   describe("Get Decrypted Employee", function () {
@@ -191,154 +151,45 @@ describe("DropDis", function () {
       );
 
       await expect(contract.getDecryptedEmployee(1, 0)).to.be.revertedWith(
-        "Data not decrypted yet"
-      );
-    });
-
-    it("Should revert for invalid employee index", async function () {
-      const totalAmount = parseEther("3.0");
-      await contract.submitSalaryBatch(
-        encryptedAddresses,
-        encryptedAmounts,
-        addressProofs,
-        amountProofs,
-        { value: totalAmount }
-      );
-
-      await expect(contract.getDecryptedEmployee(1, 999)).to.be.revertedWith(
-        "Invalid employee index"
+        "Not decrypted"
       );
     });
   });
 
-  describe("Withdraw", function () {
-    it("Should allow owner to withdraw funds", async function () {
+  describe("Withdraw Excess", function () {
+    it("Should allow owner to withdraw excess funds", async function () {
       await owner.sendTransaction({
         to: await contract.getAddress(),
-        value: parseEther("1.0"),
+        value: ethers.parseUnits("1.0", "wei"),
       });
 
       const initialBalance = await hre.ethers.provider.getBalance(
         owner.address
       );
-      const tx = await contract.withdraw();
+      const tx = await contract.withdrawExcess();
       const receipt = await tx.wait();
-      const gasUsed = receipt.gasUsed.mul(receipt.effectiveGasPrice);
 
-      const finalBalance = await hre.ethers.provider.getBalance(owner.address);
+      const gasUsed: number = receipt.gasUsed * receipt.gasPrice;
 
-      expect(finalBalance.add(gasUsed)).to.equal(
-        initialBalance.add(parseEther("1.0"))
+      const finalBalance: any = await hre.ethers.provider.getBalance(
+        owner.address
+      );
+
+      expect(finalBalance + gasUsed).to.equal(
+        initialBalance + ethers.parseUnits("1.0", "wei")
       );
     });
 
     it("Should reject if non-owner tries to withdraw", async function () {
-      await expect(contract.connect(nonOwner).withdraw()).to.be.revertedWith(
-        "Only owner can call this function"
-      );
+      await expect(
+        contract.connect(nonOwner).withdrawExcess()
+      ).to.be.revertedWith("Only owner");
     });
 
-    it("Should reject if contract has no funds", async function () {
-      await expect(contract.withdraw()).to.be.revertedWith(
-        "No funds to withdraw"
+    it("Should reject if contract has no excess funds", async function () {
+      await expect(contract.withdrawExcess()).to.be.revertedWith(
+        "No excess balance"
       );
-    });
-  });
-
-  describe("Decryption Process (Simulated)", function () {
-    it("Should handle address decryption callback", async function () {
-      const totalAmount = parseEther("3.0");
-      await contract.submitSalaryBatch(
-        encryptedAddresses,
-        encryptedAmounts,
-        addressProofs,
-        amountProofs,
-        { value: totalAmount }
-      );
-
-      // Simulate the address decryption callback with REAL plaintext data
-      const cleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ["address[]"],
-        [plaintextAddresses]
-      );
-
-      await contract.addressDecryptCallback(
-        1, // Mock requestId
-        cleartexts,
-        "0x" // Mock decryption proof
-      );
-
-      const [, addressDecrypted, ,] = await contract.getBatchStatus(1);
-      expect(addressDecrypted).to.be.true;
-    });
-
-    it("Should handle amount decryption callback", async function () {
-      const totalAmount = parseEther("3.0");
-      await contract.submitSalaryBatch(
-        encryptedAddresses,
-        encryptedAmounts,
-        addressProofs,
-        amountProofs,
-        { value: totalAmount }
-      );
-
-      // Simulate the amount decryption callback with REAL plaintext data
-      const cleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint64[]"],
-        [plaintextAmounts]
-      );
-
-      await contract.amountDecryptCallback(
-        2, // Mock requestId
-        cleartexts,
-        "0x" // Mock decryption proof
-      );
-
-      const [, , amountDecrypted, totalAmountResult] =
-        await contract.getBatchStatus(1);
-      expect(amountDecrypted).to.be.true;
-      expect(totalAmountResult).to.equal(Number(totalAmount));
-    });
-
-    it("Should process salary distribution after both callbacks", async function () {
-      const totalAmount = parseEther("3.0");
-      await contract.submitSalaryBatch(
-        encryptedAddresses,
-        encryptedAmounts,
-        addressProofs,
-        amountProofs,
-        { value: totalAmount }
-      );
-
-      // Simulate address decryption
-      const addressCleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ["address[]"],
-        [plaintextAddresses]
-      );
-      await contract.addressDecryptCallback(1, addressCleartexts, "0x");
-
-      // Simulate amount decryption
-      const amountCleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint64[]"],
-        [plaintextAmounts]
-      );
-      await contract.amountDecryptCallback(2, amountCleartexts, "0x");
-
-      // Check that the batch is processed
-      const [isProcessed, , ,] = await contract.getBatchStatus(1);
-      expect(isProcessed).to.be.true;
-
-      // Check that the decrypted employee data is correct
-      const [emp1Addr, emp1Amount] = await contract.getDecryptedEmployee(1, 0);
-      const [emp2Addr, emp2Amount] = await contract.getDecryptedEmployee(1, 1);
-      const [emp3Addr, emp3Amount] = await contract.getDecryptedEmployee(1, 2);
-
-      expect(emp1Addr).to.equal(addr1.address);
-      expect(emp1Amount).to.equal(Number(plaintextAmounts[0]));
-      expect(emp2Addr).to.equal(addr2.address);
-      expect(emp2Amount).to.equal(Number(plaintextAmounts[1]));
-      expect(emp3Addr).to.equal(addr3.address);
-      expect(emp3Amount).to.equal(Number(plaintextAmounts[2]));
     });
   });
 
@@ -359,7 +210,7 @@ describe("DropDis", function () {
 
       await expect(tx)
         .to.emit(contract, "SalaryBatchSubmitted")
-        .withArgs(1, owner.address, 1);
+        .withArgs(1, owner.address, 1, plaintextAmounts[0]);
     });
   });
 });

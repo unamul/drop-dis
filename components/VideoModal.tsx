@@ -31,7 +31,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoId }) => 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-75"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-0 bg-orange-600"
       onClick={onClose}
     >
       <div
