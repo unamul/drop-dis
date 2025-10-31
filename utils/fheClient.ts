@@ -12,13 +12,8 @@ export async function initializeFheInstance() {
     );
   }
 
-  const wasmResponse = await fetch("/wasm/tfhe_bg.wasm");
-  const wasmBinary = await wasmResponse.arrayBuffer();
-  const wasmResponse2 = await fetch("/wasm/kms_lib_bg.wasm");
-  const wasmBinary2 = await wasmResponse2.arrayBuffer();
-
   // Load the WASM runtime
-  await initSDK({ tfheParams: [wasmBinary, wasmBinary2] });
+  await initSDK();
 
   const config = { ...SepoliaConfig };
 
