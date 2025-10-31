@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/relayer-sdk-js/:path*",
+      "destination": "https://cdn.zama.ai/relayer-sdk-js/:path*"
+    }
+  ],
+  "version": 2,
+  "buildCommand": "yarn build",
+  "installCommand": "yarn install",
+  "outputDirectory": ".next",
+  "public": true
+}
