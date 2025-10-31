@@ -28,11 +28,11 @@ export async function initializeFheInstance() {
 }
 
 export function getFheInstance() {
-  if (!fheInstance) {
-    throw new Error(
-      "FHE instance not initialized. Call initializeFheInstance() first."
-    );
-  }
+  // if (!fheInstance) {
+  //   throw new Error(
+  //     "FHE instance not initialized. Call initializeFheInstance() first."
+  //   );
+  // }
   return fheInstance;
 }
 

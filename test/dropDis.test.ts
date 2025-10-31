@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from "chai";
@@ -54,7 +55,7 @@ describe("DropDis", function () {
     for (const employee of employees) {
       const addressInput = hre.fhevm.createEncryptedInput(
         await contract.getAddress(),
-        owner.address 
+        owner.address
       );
       addressInput.addAddress(employee.address);
       const addressEncrypted: any = await addressInput.encrypt();
@@ -190,6 +191,198 @@ describe("DropDis", function () {
       await expect(contract.withdrawExcess()).to.be.revertedWith(
         "No excess balance"
       );
+    });
+  });
+
+  // decryption -------
+  describe("Decryption Process (Simulated)", function () {
+    it("Should handle address decryption callback", async function () {
+      const totalAmount = ethers.parseUnits("3.0", "wei");
+      await contract.submitSalaryBatch(
+        encryptedAddresses,
+        encryptedAmounts,
+        addressProofs,
+        amountProofs,
+        { value: totalAmount }
+      );
+
+      // Get the requestId from the DecryptionRequested event
+      const filter = contract.filters.DecryptionRequested(1, null, null);
+      const events = await contract.queryFilter(filter);
+      const addressRequestEvent = events.find((e) => e.args?.kind === 0); // RequestKind.Addresses = 0
+      const requestId = addressRequestEvent?.args?.requestId;
+
+      // Simulate the address decryption callback with REAL plaintext data
+      const cleartexts = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["address[]"],
+        [plaintextAddresses]
+      );
+
+      await contract.addressDecryptCallback(
+        requestId,
+        cleartexts,
+        "0x" // Mock decryption proof
+      );
+
+      const batch = await contract.salaryBatches(1);
+      expect(batch.addressesDecrypted).to.be.true;
+    });
+
+    it("Should handle amount decryption callback", async function () {
+      const totalAmount = parseEther("3.0");
+      await contract.submitSalaryBatch(
+        encryptedAddresses,
+        encryptedAmounts,
+        addressProofs,
+        amountProofs,
+        { value: totalAmount }
+      );
+
+      // Get the requestId from the DecryptionRequested event
+      const filter = contract.filters.DecryptionRequested(1, null, null);
+      const events = await contract.queryFilter(filter);
+      const amountRequestEvent = events.find((e) => e.args?.kind === 1); // RequestKind.Amounts = 1
+      const requestId = amountRequestEvent?.args?.requestId;
+
+      // Simulate the amount decryption callback with REAL plaintext data
+      const cleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+        ["uint64[]"],
+        [plaintextAmounts.map((a) => Number(a))]
+      );
+
+      await contract.amountDecryptCallback(
+        requestId,
+        cleartexts,
+        "0x" // Mock decryption proof
+      );
+
+      const batch = await contract.salaryBatches(1);
+      expect(batch.amountsDecrypted).to.be.true;
+      expect(batch.totalAmount).to.equal(totalAmount);
+    });
+
+    it("Should process salary distribution after both callbacks", async function () {
+      const totalAmount = parseEther("3.0");
+      await contract.submitSalaryBatch(
+        encryptedAddresses,
+        encryptedAmounts,
+        addressProofs,
+        amountProofs,
+        { value: totalAmount }
+      );
+
+      // Get the requestIds from the DecryptionRequested events
+      const filter = contract.filters.DecryptionRequested(1, null, null);
+      const events = await contract.queryFilter(filter);
+      const addressRequestEvent = events.find((e) => e.args?.kind === 0); // RequestKind.Addresses = 0
+      const amountRequestEvent = events.find((e) => e.args?.kind === 1); // RequestKind.Amounts = 1
+      const addressRequestId = addressRequestEvent?.args?.requestId;
+      const amountRequestId = amountRequestEvent?.args?.requestId;
+
+      // Simulate address decryption
+      const addressCleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+        ["address[]"],
+        [plaintextAddresses]
+      );
+      await contract.addressDecryptCallback(
+        addressRequestId,
+        addressCleartexts,
+        "0x"
+      );
+
+      // Simulate amount decryption
+      const amountCleartexts = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+        ["uint64[]"],
+        [plaintextAmounts.map((a) => Number(a))]
+      );
+      await contract.amountDecryptCallback(
+        amountRequestId,
+        amountCleartexts,
+        "0x"
+      );
+
+      // Check that the batch is processed
+      const batch = await contract.salaryBatches(1);
+      expect(batch.isProcessed).to.be.true;
+
+      // Check that the decrypted employee data is correct
+      const [emp1Addr, emp1Amount] = await contract.getDecryptedEmployee(1, 0);
+      const [emp2Addr, emp2Amount] = await contract.getDecryptedEmployee(1, 1);
+      const [emp3Addr, emp3Amount] = await contract.getDecryptedEmployee(1, 2);
+
+      expect(emp1Addr).to.equal(addr1.address);
+      expect(emp1Amount).to.equal(plaintextAmounts[0]);
+      expect(emp2Addr).to.equal(addr2.address);
+      expect(emp2Amount).to.equal(plaintextAmounts[1]);
+      expect(emp3Addr).to.equal(addr3.address);
+      expect(emp3Amount).to.equal(plaintextAmounts[2]);
+    });
+
+    it("Should handle failed transfers", async function () {
+      // Create a batch with an invalid address
+      const invalidAddresses = [
+        ethers.constants.AddressZero,
+        addr2.address,
+        addr3.address,
+      ];
+
+      // Encrypt the invalid address
+      const addressInput = hre.fhevm.createEncryptedInput(
+        await contract.getAddress(),
+        owner.address
+      );
+      addressInput.addAddress(ethers.constants.AddressZero);
+      const addressEncrypted = await addressInput.encrypt();
+      const invalidEncryptedAddress = ethers.hexlify(
+        addressEncrypted.handles[0]
+      );
+      const invalidAddressProof = addressEncrypted.inputProof;
+
+      // Submit a new batch with invalid address
+      const tx = await contract.submitSalaryBatch(
+        [invalidEncryptedAddress, encryptedAddresses[1], encryptedAddresses[2]],
+        [encryptedAmounts[0], encryptedAmounts[1], encryptedAmounts[2]],
+        [invalidAddressProof, addressProofs[1], addressProofs[2]],
+        [amountProofs[0], amountProofs[1], amountProofs[2]],
+        { value: totalAmount }
+      );
+
+      const receipt = await tx.wait();
+      const event = receipt.events?.find(
+        (e) => e.event === "SalaryBatchSubmitted"
+      );
+      const batchId = event?.args?.batchId;
+
+      // Get the requestIds from the DecryptionRequested events
+      const filter = contract.filters.DecryptionRequested(batchId, null, null);
+      const events = await contract.queryFilter(filter);
+      const addressRequestEvent = events.find((e) => e.args?.kind === 0); // RequestKind.Addresses = 0
+      const amountRequestEvent = events.find((e) => e.args?.kind === 1); // RequestKind.Amounts = 1
+      const addressRequestId = addressRequestEvent?.args?.requestId;
+      const amountRequestId = amountRequestEvent?.args?.requestId;
+
+      // Mock the address callback with invalid address
+      await contract.addressDecryptCallback(
+        addressRequestId,
+        ethers.utils.defaultAbiCoder.encode(["address[]"], [invalidAddresses]),
+        "0x" // Mock proof
+      );
+
+      // Mock the amount callback
+      await contract.amountDecryptCallback(
+        amountRequestId,
+        ethers.utils.defaultAbiCoder.encode(
+          ["uint64[]"],
+          [plaintextAmounts.map((a) => Number(a))]
+        ),
+        "0x" // Mock proof
+      );
+
+      // Check failed transfers
+      const [failedRecipients, failedAmounts] =
+        await contract.getFailedTransfers(batchId);
+      expect(failedRecipients[0]).to.equal(ethers.constants.AddressZero);
+      expect(failedAmounts[0]).to.equal(plaintextAmounts[0]);
     });
   });
 

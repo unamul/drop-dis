@@ -15,7 +15,7 @@ export default function FHEVM() {
         const initializeFhevm = async () => {
           try {
             await initializeFheInstance();
-            console.log('✅ FHEVM initialized!');
+            // console.log('✅ FHEVM initialized!');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (error: any) {
             console.log(error.message);

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ethers, hexlify, parseEther } from "ethers";
-import { getFheInstance } from "./fheClient";
+import { getFheInstance, initializeFheInstance } from "./fheClient";
 import { DropDisABI } from "./ABI";
 import { Key } from "react";
 
@@ -31,10 +31,16 @@ export interface EmployeeData {
 
 export const encryptEmployeeData = async (address: string, salary: number) => {
   //  Get a contract instance to retrieve its address and signer.
+
   const contract = await getContract();
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
   const signerAddress = await contract.getAddress();
-  const fhevmInstance = await getFheInstance();
+
+  // eslint-disable-next-line prefer-const
+  let fhevmInstance = await getFheInstance();
+  if (!fhevmInstance) {
+    fhevmInstance = await initializeFheInstance();
+  }
 
   try {
     // Encrypt the employee's address.
@@ -122,7 +128,7 @@ export const submitSalaryBatch = async (
   const contract = await getContract();
   setResponse(`Waiting for confirmation....`);
 
-  console.log({ employeesData });
+  // console.log({ employeesData });
 
   const encryptedAddresses = employeesData.encryptedAddresses.map(
     (item: any) => item?.data
@@ -148,7 +154,7 @@ export const submitSalaryBatch = async (
     {
       value: parseEther(totalAmount.toString()),
     }
-  );  
+  );
 
   const receipt = await tx.wait();
 
