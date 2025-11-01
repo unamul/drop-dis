@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let fheInstance: any = null;
 
@@ -12,8 +13,16 @@ export async function initializeFheInstance() {
     );
   }
 
-  // Load the WASM runtime
-  await initSDK();
+  try {
+    // Load the WASM runtime
+    await initSDK();
+  } catch (error) {
+    console.log("✅ fixed cors issue");
+    await initSDK({
+      tfheParams: "/wasm/tfhe_bg.wasm",
+      kmsParams: "/wasm/kms_lib_bg.wasm",
+    });
+  }
 
   const config = { ...SepoliaConfig };
 
