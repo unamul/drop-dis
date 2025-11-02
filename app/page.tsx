@@ -108,113 +108,192 @@ const SalaryDistribution: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-orange-800 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-300">
-            <span className="text-white shadow-amber-400 shadow-sm bg-orange-400 rounded-2xl px-6 font-bold">
-              Drop Dis
-            </span>{' '}
-            Encrypted Salary Distribution
-          </h1>
-          <p className="mt-2 text-gray-200 text-bold text-sm">
-            Distribute salaries to multiple employees with encrypted data.{' '}
-            <span className="text-amber-500">Powered by zama FHEVM</span>
-          </p>
-        </div>
+    <div className="min-h-screen py-8 relative overflow-hidden">
+      <div className="absolute inset-0 animate-gradient"></div>
+      <div className="relative z-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="mb-6">
+              <h1 className="text-5xl font-bold mb-4">
+                <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                  Drop Dis
+                </span>
+              </h1>
+              <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2>
+            </div>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto">
+              Securely distribute salaries to multiple employees with advanced FHE encryption
+              technology.
+              <span className="block mt-2 text-purple-300 font-medium">
+                🔐 Powered by Zama FHEVM
+              </span>
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-x-4 items-start">
-          <div className="lg:col-span-5 lg:pt-20">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <EmployeeForm
-                onAddEmployee={handleAddEmployee}
-                onUpdateEmployee={handleUpdateEmployee}
-                onRemoveEmployee={handleRemoveEmployee}
-                seIsEncrypting={seIsEncrypting}
-              />
-              <EmployeeList employees={employees} onRemoveEmployee={handleRemoveEmployee} />
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-x-4 items-start">
+            <div className="lg:col-span-5 lg:pt-20">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <EmployeeForm
+                  onAddEmployee={handleAddEmployee}
+                  onUpdateEmployee={handleUpdateEmployee}
+                  onRemoveEmployee={handleRemoveEmployee}
+                  seIsEncrypting={seIsEncrypting}
+                />
+                <EmployeeList employees={employees} onRemoveEmployee={handleRemoveEmployee} />
+              </div>
+
+              {submitting && (
+                <div className="mb-6 p-4 glass-card rounded-xl">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="loading-spinner w-5 h-5"></span>
+                    <span className="text-purple-600 font-medium">{submitting}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="glass-card p-8 rounded-2xl border border-white/20 shadow-2xl mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Batch Distribution
+                    </h3>
+                    <p className="text-sm text-gray-200 mt-1">
+                      Submit encrypted salary data for distribution
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-200">Total Amount</p>
+                    <p className="text-2xl font-bold text-purple-600">{totalSalary} ETH</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmitBatch}
+                  disabled={
+                    submitting !== null ||
+                    employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
+                    isEncrypting
+                  }
+                  className={`btn-primary w-full text-lg py-4 ${
+                    submitting !== null ||
+                    employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
+                    isEncrypting
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:scale-[1.02] active:scale-[0.98]'
+                  } transition-transform duration-200`}
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="loading-spinner"></span>
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-3">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      Distribute Now
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <span className="text-red-500 font-bold text-xs py-5 text-center">
-              {submitting && submitting}
-            </span>
-
-            <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-              <button
-                onClick={handleSubmitBatch}
-                disabled={
-                  submitting !== null ||
-                  employees.filter((emp: any) => emp.isEncrypted).length === 0 ||
-                  isEncrypting
-                }
-                className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-                  submitting !== null ||
-                  employees.filter((emp: any) => emp.isEncrypted).length === 0
-                    ? 'bg-orange-300 cursor-not-allowed'
-                    : 'bg-orange-400 hover:bg-orange-500 hover:cursor-pointer'
-                }`}
-              >
-                {submitting ? submitting : 'Distribute Now'}
-              </button>
+            <div className="hidden lg:block lg:col-span-2">
+              <AnimatedIllustration />
             </div>
           </div>
 
-          <div className="hidden lg:block lg:col-span-2">
-            <AnimatedIllustration />
-          </div>
+          {txHash && (
+            <div className="glass-card p-8 rounded-2xl border border-white/20 shadow-2xl mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    Transaction Confirmed
+                  </h3>
+                  <p className="text-sm text-gray-200">
+                    Your salary distribution has been submitted
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Transaction Hash</p>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="font-mono text-sm text-gray-400 break-all">{txHash}</p>
+                  </div>
+                </div>
+
+                <a
+                  href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  View on Etherscan
+                </a>
+              </div>
+            </div>
+          )}
+
+          <BatchStatus batchId={currentBatchId} />
         </div>
 
-        {txHash && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-xl font-bold mb-4">Transaction Details</h2>
-            <p className="text-sm text-gray-600 mb-2">Transaction Hash: {txHash}</p>
-            <a
-              href={`https://sepolia.etherscan.io/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
-            >
-              View on Etherscan
-            </a>
-          </div>
-        )}
+        <button
+          onClick={() => setIsVideoModalOpen(true)}
+          className="btn-primary fixed left-6 top-6 z-50 glass-card px-6 py-3 rounded-full shadow-2xl border border-white/20 hover:scale-105 active:scale-95 transition-all duration-300 group flex items-center hover:cursor-pointer"
+        >
+          <FaVideo size={18} className="text-purple-600 group-hover:text-purple-700" />
+          <span className="ml-2 text-gray-200 font-medium group-hover:text-gray-400">
+            Watch Video
+          </span>
+        </button>
 
-        <BatchStatus batchId={currentBatchId} />
-      </div>
+        <Link
+          href="https://github.com/unamul/drop-dis/blob/main/README.md"
+          className="btn-secondary fixed right-6 bottom-0 mt-4 z-50 bg-gray-600 px-6 py-3 rounded-full shadow-2xl active:scale-95 transition-all duration-300 group flex items-center gap-2"
+        >
+          <FaBookOpen size={18} />
+          <span className="text-center">Read Docs</span>
+        </Link>
 
-      <button
-        onClick={() => setIsVideoModalOpen(true)}
-        className="
-        fixed left-6 top-6 z-50
-        flex items-center gap-2
-        bg-green-500 text-white font-medium
-        px-4 py-2 rounded-full shadow-lg
-        hover:bg-green-600 transition-all duration-300
-        active:scale-95
-        hover:cursor-pointer
-      "
-      >
-        <FaVideo size={18} />
-        <span>Watch Video</span>
-      </button>
-
-      <Link
-        href="https://github.com/unamul/drop-dis/blob/main/README.md"
-        className="
-        fixed right-6 bottom-6 z-50
-        flex items-center gap-2
-        bg-orange-500 text-white font-medium
-        px-4 py-2 rounded-full shadow-lg
-        hover:bg-orange-600 transition-all duration-300
-        active:scale-95
-      "
-      >
-        <FaBookOpen size={18} />
-        <span>Read Docs</span>
-      </Link>
-
-      <div className="fixed top-2 right-2">
-        <WalletButton />
+        <div className="fixed top-6 right-6 z-40">
+          <WalletButton />
+        </div>
       </div>
 
       {/* video --------  */}
