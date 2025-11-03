@@ -144,20 +144,22 @@ const SalaryDistribution: React.FC = () => {
       <div className="absolute inset-0 animate-gradient"></div>
       <div className="relative z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* text--- */}
           <div className="text-center mb-12 mt-16 md:mt-0">
             <div className="mb-6 ">
-              <h1 className="text-5xl font-bold mb-4 logo-glow ">
+              <h1 className="text-5xl font-bold mb-4 logo-glow">
         
-                <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-300 to-orange-600 bg-clip-text text-transparent">
                   Drop Dis
                 </span>
               </h1>
 
-               <InlineMatrixText
+               {/* <InlineMatrixText
                   text="Encrypted Salary Distribution"
                   className="text-2xl font-light text-white/90"
-                />
-              {/* <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2> */}
+                /> */}
+              <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2>
             </div>
             
             <p className="text-lg text-white/80 max-w-2xl mx-auto">
