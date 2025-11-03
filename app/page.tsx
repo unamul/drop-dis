@@ -12,6 +12,8 @@ import { FaBookOpen, FaVideo } from 'react-icons/fa';
 import VideoModal from '@/components/VideoModal';
 import AnimatedIllustration from '@/components/AnimatedIllustration';
 import WalletButton from '@/components/WalletConnect';
+import LoadingMain from '@/components/LoadingMain';
+import { InlineMatrixText } from '@/components/ui/InlineMatrixText';
 
 const SalaryDistribution: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
@@ -143,20 +145,29 @@ const SalaryDistribution: React.FC = () => {
       <div className="relative z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 mt-16 md:mt-0">
-            <div className="mb-6">
-              <h1 className="text-5xl font-bold mb-4 logo-glow">
+            <div className="mb-6 ">
+              <h1 className="text-5xl font-bold mb-4 logo-glow ">
+        
                 <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
                   Drop Dis
                 </span>
               </h1>
-              <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2>
+
+               <InlineMatrixText
+                  text="Encrypted Salary Distribution"
+                  className="text-2xl font-light text-white/90"
+                />
+              {/* <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2> */}
             </div>
+            
             <p className="text-lg text-white/80 max-w-2xl mx-auto">
               Securely distribute salaries to multiple employees with advanced FHE encryption
               technology.
-              <span className="block mt-2 text-purple-300 font-medium">
-                🔐 Powered by Zama FHEVM
-              </span>
+                    <InlineMatrixText
+                  text="Powered by Zama FHEVM"
+                  className="block mt-2 text-orange-300 font-medium"
+                />
+              
             </p>
           </div>
 
@@ -331,6 +342,18 @@ const SalaryDistribution: React.FC = () => {
         isOpen={isVideoModalOpen}
         onClose={() => setIsVideoModalOpen(false)}
         videoId={videoId}
+      />
+
+      <LoadingMain
+        isVisible={isEncrypting}
+        message="Encrypting employee data..."
+        type="encryption"
+      />
+
+      <LoadingMain
+        isVisible={submitting !== null}
+        message={submitting || "Processing batch submission..."}
+        type="submission"
       />
     </div>
   );
