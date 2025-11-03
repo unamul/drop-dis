@@ -26,6 +26,7 @@ const SalaryDistribution: React.FC = () => {
   const [amountProofs, setAmountProofs] = useState<any>([]);
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isSubmitAnimating, setIsSubmitAnimating] = useState(false);
 
   const videoId: any = process.env.NEXT_PUBLIC_VIDEOID;
 
@@ -63,6 +64,10 @@ const SalaryDistribution: React.FC = () => {
       return;
     }
 
+    // Trigger submit animation
+    setIsSubmitAnimating(true);
+    setTimeout(() => setIsSubmitAnimating(false), 800);
+
     const employeesData = {
       encryptedAddresses,
       encryptedAmounts,
@@ -74,9 +79,7 @@ const SalaryDistribution: React.FC = () => {
       const result: any = await submitSalaryBatch(employeesData, setSubmitting, totalSalary);
       setCurrentBatchId(result.batchId);
       setTxHash(result.transactionHash);
-      toast.success('Salary batch submitted successfully!', {
-        style: { backgroundColor: 'green' },
-      });
+      toast.success('✅ Salary batch submitted successfully!');
       setEmployees([]); // Clear the list after successful submission
     } catch (error: any) {
       console.error('Error submitting salary batch:', error.message);
@@ -101,20 +104,47 @@ const SalaryDistribution: React.FC = () => {
         .replace(/\(error=.*\)/i, '')
         .trim();
 
-      toast.error(readableError);
+      toast.error(`❌ ${readableError}`);
     } finally {
       setSubmitting(null);
     }
   };
 
+  // Handle cursor click animation
+  const handleBodyClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a')) {
+      return;
+    }
+
+    const ripple = document.createElement('div');
+    ripple.style.position = 'fixed';
+    ripple.style.left = `${e.clientX}px`;
+    ripple.style.top = `${e.clientY}px`;
+    ripple.style.width = '20px';
+    ripple.style.height = '20px';
+    ripple.style.background = 'radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent)';
+    ripple.style.borderRadius = '50%';
+    ripple.style.pointerEvents = 'none';
+    ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+    ripple.style.opacity = '1';
+    ripple.style.zIndex = '9999';
+    ripple.style.animation = 'cursorRipple 0.6s ease-out forwards';
+
+    document.body.appendChild(ripple);
+    setTimeout(() => {
+      document.body.removeChild(ripple);
+    }, 600);
+  };
+
   return (
-    <div className="min-h-screen py-8 relative overflow-hidden">
+    <div className="min-h-screen py-8 relative overflow-hidden cursor-click" onClick={handleBodyClick}>
       <div className="absolute inset-0 animate-gradient"></div>
       <div className="relative z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 mt-16 md:mt-0">
             <div className="mb-6">
-              <h1 className="text-5xl font-bold mb-4">
+              <h1 className="text-5xl font-bold mb-4 logo-glow">
                 <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
                   Drop Dis
                 </span>
@@ -145,7 +175,7 @@ const SalaryDistribution: React.FC = () => {
               {submitting && (
                 <div className="mb-6 p-4 glass-card rounded-xl">
                   <div className="flex items-center justify-center gap-3">
-                    <span className="loading-spinner w-5 h-5"></span>
+                    <span className="loading-spinner-enhanced w-5 h-5"></span>
                     <span className="text-purple-600 font-medium">{submitting}</span>
                   </div>
                 </div>
@@ -180,11 +210,11 @@ const SalaryDistribution: React.FC = () => {
                     isEncrypting
                       ? 'opacity-50 cursor-not-allowed'
                       : 'hover:scale-[1.02] active:scale-[0.98]'
-                  } transition-transform duration-200`}
+                  } transition-transform duration-200 ${isSubmitAnimating ? 'submit-animation' : ''}`}
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center gap-3">
-                      <span className="loading-spinner"></span>
+                      <span className="loading-spinner-enhanced"></span>
                       Processing...
                     </span>
                   ) : (
@@ -284,7 +314,7 @@ const SalaryDistribution: React.FC = () => {
         </button>
 
         <Link
-          href="https://github.com/unamul/drop-dis/blob/main/README.md"
+          href="/docs"
           className="btn-secondary fixed right-6 bottom-0 mt-4 z-50 bg-gray-600 px-6 py-3 rounded-full shadow-2xl active:scale-95 transition-all duration-300 group flex items-center gap-2"
         >
           <FaBookOpen size={18} />
