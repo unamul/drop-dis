@@ -29,20 +29,29 @@ export interface EmployeeData {
   salary: number;
 }
 
-export const encryptEmployeeData = async (address: string, salary: number) => {
-  //  Get a contract instance to retrieve its address and signer.
-
-  const contract = await getContract();
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-  const signerAddress = await contract.getAddress();
-
-  // eslint-disable-next-line prefer-const
-  let fhevmInstance = await getFheInstance();
-  if (!fhevmInstance) {
-    fhevmInstance = await initializeFheInstance();
-  }
-
+export const encryptEmployeeData = async (
+  address: string,
+  salary: number,
+  progressCallback?: (step: number, message: string) => void
+) => {
   try {
+    progressCallback?.(1, "Initializing contract connection...");
+
+    //  Get a contract instance to retrieve its address and signer.
+    const contract = await getContract();
+    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+    const signerAddress = await contract.getAddress();
+
+    progressCallback?.(2, "Initializing encryption service...");
+
+    // eslint-disable-next-line prefer-const
+    let fhevmInstance = await getFheInstance();
+    if (!fhevmInstance) {
+      fhevmInstance = await initializeFheInstance();
+    }
+
+    progressCallback?.(3, "Encrypting wallet address...");
+
     // Encrypt the employee's address.
     const addressCiphertext = await fhevmInstance.createEncryptedInput(
       contractAddress,
@@ -54,6 +63,8 @@ export const encryptEmployeeData = async (address: string, salary: number) => {
     const { handles: addressHandles, inputProof: addressProof } =
       await addressCiphertext.encrypt();
 
+    progressCallback?.(4, "Encrypting salary amount...");
+
     const amountCiphertext = await fhevmInstance.createEncryptedInput(
       contractAddress,
       signerAddress
@@ -64,6 +75,8 @@ export const encryptEmployeeData = async (address: string, salary: number) => {
     amountCiphertext.add64(BigInt(amountInWei));
     const { handles: amountHandles, inputProof: amountProof } =
       await amountCiphertext.encrypt();
+
+    progressCallback?.(5, "Finalizing encryption...");
 
     return {
       encryptedAddress: hexlify(addressHandles[0]),
@@ -81,7 +94,7 @@ export const encryptEmployeeData = async (address: string, salary: number) => {
   }
 };
 
-export async function switchToSepolia() {
+export async function switchToSepolia(progressCallback?: (message: string) => void) {
   if (!(window as any).ethereum) {
     throw new Error("MetaMask not detected");
   }
@@ -89,12 +102,18 @@ export async function switchToSepolia() {
   const sepoliaChainId = "0xaa36a7";
 
   try {
+    progressCallback?.("Switching to Sepolia testnet...");
+
     await (window as any).ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: sepoliaChainId }],
     });
+
+    progressCallback?.("Successfully connected to Sepolia testnet");
   } catch (error: any) {
     if (error.code === 4902) {
+      progressCallback?.("Sepolia network not found. Adding network...");
+
       await (window as any).ethereum.request({
         method: "wallet_addEthereumChain",
         params: [
@@ -113,6 +132,8 @@ export async function switchToSepolia() {
           },
         ],
       });
+
+      progressCallback?.("Sepolia network added successfully");
     } else {
       console.error("Network switch failed:", error);
       throw error;
@@ -125,51 +146,71 @@ export const submitSalaryBatch = async (
   setResponse: any,
   totalAmount: number
 ) => {
-  const contract = await getContract();
-  setResponse(`Waiting for confirmation....`);
+  try {
+    setResponse(`Preparing transaction data...`);
 
-  // console.log({ employeesData });
+    const contract = await getContract();
 
-  const encryptedAddresses = employeesData.encryptedAddresses.map(
-    (item: any) => item?.data
-  );
-  const encryptedAmounts = employeesData.encryptedAmounts.map(
-    (item: any) => item?.data
-  );
-  const addressProofs = employeesData.addressProofs.map(
-    (item: any) => item?.data
-  );
-  const amountProofs = employeesData.amountProofs.map(
-    (item: any) => item?.data
-  );
+    setResponse(`Processing encrypted employee data...`);
 
-  await switchToSepolia();
+    const encryptedAddresses = employeesData.encryptedAddresses.map(
+      (item: any) => item?.data
+    );
+    const encryptedAmounts = employeesData.encryptedAmounts.map(
+      (item: any) => item?.data
+    );
+    const addressProofs = employeesData.addressProofs.map(
+      (item: any) => item?.data
+    );
+    const amountProofs = employeesData.amountProofs.map(
+      (item: any) => item?.data
+    );
 
-  // Submit to contract
-  const tx = await contract.submitSalaryBatch(
-    encryptedAddresses,
-    encryptedAmounts,
-    addressProofs,
-    amountProofs,
-    {
-      value: parseEther(totalAmount.toString()),
-    }
-  );
+    setResponse(`Connecting to Sepolia testnet...`);
 
-  const receipt = await tx.wait();
+    await switchToSepolia((message) => {
+      setResponse(message);
+    });
 
-  console.log({receipt});
+    setResponse(`Preparing transaction for ${employeesData.encryptedAddresses.length} employees...`);
 
-  // Extract batch ID from events
-  const batchSubmittedEvent = receipt.events?.find(
-    (e: any) => e.event === "SalaryBatchSubmitted"
-  );
-  const batchId = batchSubmittedEvent?.args?.batchId;
+    // Submit to contract
+    const tx = await contract.submitSalaryBatch(
+      encryptedAddresses,
+      encryptedAmounts,
+      addressProofs,
+      amountProofs,
+      {
+        value: parseEther(totalAmount.toString()),
+      }
+    );
 
-  return {
-    transactionHash: receipt?.transactionHash,
-    batchId: batchId?.toNumber(),
-  };
+    setResponse(`Transaction submitted! Hash: ${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}`);
+    setResponse(`Waiting for blockchain confirmation...`);
+
+    const receipt = await tx.wait();
+
+    console.log({receipt});
+
+    setResponse(`Transaction confirmed! Processing batch details...`);
+
+    // Extract batch ID from events
+    const batchSubmittedEvent = receipt.events?.find(
+      (e: any) => e.event === "SalaryBatchSubmitted"
+    );
+    const batchId = batchSubmittedEvent?.args?.batchId;
+
+    setResponse(`Batch #${batchId?.toNumber()} created successfully!`);
+
+    return {
+      transactionHash: receipt?.transactionHash,
+      batchId: batchId?.toNumber(),
+    };
+  } catch (error: any) {
+    console.error("Batch submission failed:", error);
+    setResponse(`Transaction failed: ${error.message}`);
+    throw error;
+  }
 };
 
 export const getBatchStatus = async (batchId: number) => {

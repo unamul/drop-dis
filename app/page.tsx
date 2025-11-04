@@ -30,6 +30,12 @@ const SalaryDistribution: React.FC = () => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isSubmitAnimating, setIsSubmitAnimating] = useState(false);
 
+  // Progress tracking states
+  const [encryptionStep, setEncryptionStep] = useState(0);
+  const [encryptionMessage, setEncryptionMessage] = useState('');
+  const [submissionStep, setSubmissionStep] = useState(0);
+  const [submissionMessage, setSubmissionMessage] = useState('');
+
   const videoId: any = process.env.NEXT_PUBLIC_VIDEOID;
 
   const handleAddEmployee = (newEmployee: EmployeeData) => {
@@ -39,6 +45,18 @@ const SalaryDistribution: React.FC = () => {
   const totalSalary = employees.reduce((sum, emp) => sum + emp.salary, 0);
 
   const handleUpdateEmployee = (id: string, updates: any) => {
+    // Track encryption progress
+    if (updates?.encryptionStep && updates?.encryptionMessage) {
+      setEncryptionStep(updates.encryptionStep);
+      setEncryptionMessage(updates.encryptionMessage);
+    }
+
+    // Reset encryption progress when complete
+    if (updates?.isEncrypted && !updates?.isEncrypting) {
+      setEncryptionStep(0);
+      setEncryptionMessage('');
+    }
+
     if (!updates?.encryptionError) {
       console.log({ updates });
       setEncryptedAddresses([...encryptedAddresses, { id, data: updates?.encryptedAddress }]);
@@ -78,11 +96,48 @@ const SalaryDistribution: React.FC = () => {
     };
 
     try {
-      const result: any = await submitSalaryBatch(employeesData, setSubmitting, totalSalary);
+      // Enhanced submission callback to track progress
+      const progressCallback = (message: string) => {
+        // Map submission messages to steps
+        if (message.includes('Preparing transaction data')) {
+          setSubmissionStep(1);
+          setSubmissionMessage('Preparing transaction data...');
+        } else if (message.includes('Processing encrypted employee data')) {
+          setSubmissionStep(2);
+          setSubmissionMessage('Processing encrypted employee data...');
+        } else if (message.includes('Connecting to Sepolia')) {
+          setSubmissionStep(3);
+          setSubmissionMessage('Connecting to Sepolia testnet...');
+        } else if (message.includes('Preparing transaction for')) {
+          setSubmissionStep(4);
+          setSubmissionMessage('Preparing transaction for employees...');
+        } else if (message.includes('Transaction submitted')) {
+          setSubmissionStep(5);
+          setSubmissionMessage('Transaction submitted to blockchain...');
+        } else if (message.includes('Waiting for blockchain confirmation')) {
+          setSubmissionStep(6);
+          setSubmissionMessage('Waiting for blockchain confirmation...');
+        } else if (message.includes('Transaction confirmed')) {
+          setSubmissionStep(7);
+          setSubmissionMessage('Processing batch details...');
+        } else if (message.includes('Batch #') && message.includes('created')) {
+          setSubmissionStep(7);
+          setSubmissionMessage('Batch created successfully!');
+        }
+
+        // Also call the original setSubmitting for backward compatibility
+        setSubmitting(message);
+      };
+
+      const result: any = await submitSalaryBatch(employeesData, progressCallback, totalSalary);
       setCurrentBatchId(result.batchId);
       setTxHash(result.transactionHash);
       toast.success('✅ Salary batch submitted successfully!');
       setEmployees([]); // Clear the list after successful submission
+
+      // Reset progress states
+      setSubmissionStep(0);
+      setSubmissionMessage('');
     } catch (error: any) {
       console.error('Error submitting salary batch:', error.message);
       let readableError = 'Transaction failed';
@@ -98,8 +153,7 @@ const SalaryDistribution: React.FC = () => {
         readableError = error.data.message;
       } else if (error.message?.includes('reverted')) {
         readableError = 'Transaction reverted — check contract logic or input data';
-      }
-       else if (error.message?.includes(`Relayer didn't response correctly`)) {
+      } else if (error.message?.includes(`Relayer didn't response correctly`)) {
         readableError = `Relayer didn't response correctly`;
       }
 
@@ -108,6 +162,10 @@ const SalaryDistribution: React.FC = () => {
         .replace(/execution reverted(:)?/i, '')
         .replace(/\(error=.*\)/i, '')
         .trim();
+
+      // Reset progress states on error
+      setSubmissionStep(0);
+      setSubmissionMessage('');
 
       toast.error(`❌ ${readableError}`);
     } finally {
@@ -118,7 +176,12 @@ const SalaryDistribution: React.FC = () => {
   // Handle cursor click animation
   const handleBodyClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a')) {
+    if (
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'A' ||
+      target.closest('button') ||
+      target.closest('a')
+    ) {
       return;
     }
 
@@ -143,36 +206,36 @@ const SalaryDistribution: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 relative overflow-hidden cursor-click" onClick={handleBodyClick}>
+    <div
+      className="min-h-screen py-8 relative overflow-hidden cursor-click"
+      onClick={handleBodyClick}
+    >
       <div className="absolute inset-0 animate-gradient"></div>
       <div className="relative z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-
           {/* text--- */}
           <div className="text-center mb-12 mt-16 md:mt-0">
             <div className="mb-6 ">
               <h1 className="text-5xl font-bold mb-4 logo-glow">
-        
                 <span className="bg-gradient-to-r from-orange-300 to-orange-600 bg-clip-text text-transparent">
                   Drop Dis
                 </span>
               </h1>
 
-               {/* <InlineMatrixText
+              {/* <InlineMatrixText
                   text="Encrypted Salary Distribution"
                   className="text-2xl font-light text-white/90"
                 /> */}
               <h2 className="text-2xl font-light text-white/90">Encrypted Salary Distribution</h2>
             </div>
-            
+
             <p className="text-lg text-white/80 max-w-2xl mx-auto">
               Securely distribute salaries to multiple employees with advanced FHE encryption
               technology.
-                    <InlineMatrixText
-                  text="Powered by Zama FHEVM"
-                  className="block mt-2 text-orange-300 font-medium"
-                />
-              
+              <InlineMatrixText
+                text="Powered by Zama FHEVM"
+                className="block mt-2 text-orange-300 font-medium"
+              />
             </p>
           </div>
 
@@ -351,14 +414,20 @@ const SalaryDistribution: React.FC = () => {
 
       <LoadingMain
         isVisible={isEncrypting}
-        message="Encrypting employee data..."
+        message={encryptionMessage || 'Encrypting employee data...'}
         type="encryption"
+        currentStep={encryptionStep}
+        totalSteps={5}
+        stepMessage={encryptionMessage}
       />
 
       <LoadingMain
         isVisible={submitting !== null}
-        message={submitting || "Processing batch submission..."}
+        message={submissionMessage || 'Processing batch submission...'}
         type="submission"
+        currentStep={submissionStep}
+        totalSteps={7}
+        stepMessage={submissionMessage}
       />
     </div>
   );

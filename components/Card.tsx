@@ -11,11 +11,24 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ employee, onRemoveEmployee }) => {
   const getStatusBadge = () => {
     if (employee.isEncrypting) {
+      const progressPercentage = employee.encryptionStep ? (employee.encryptionStep / 5) * 100 : 0;
+      const message = employee.encryptionMessage || 'Encrypting...';
+
       return (
-        <span className="status-badge status-warning flex items-center gap-1">
-          <span className="loading-spinner w-3 h-3"></span>
-          Encrypting...
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="status-badge status-warning flex items-center gap-1">
+            <span className="loading-spinner w-3 h-3"></span>
+            {message}
+          </span>
+          {employee.encryptionStep && (
+            <div className="w-full bg-gray-700 rounded-full h-1.5">
+              <div
+                className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+          )}
+        </div>
       );
     }
     if (employee.encryptionError) {

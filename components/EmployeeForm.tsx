@@ -53,13 +53,24 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     onAddEmployee(newEmployee);
 
     try {
-      // Start the encryption process
-      const encryptedData = await encryptEmployeeData(address, parseFloat(salary));
+      // Start the encryption process with progress feedback
+      const encryptedData = await encryptEmployeeData(
+        address,
+        parseFloat(salary),
+        (step, message) => {
+          onUpdateEmployee(tempId, {
+            encryptionStep: step,
+            encryptionMessage: message,
+          });
+        }
+      );
 
       onUpdateEmployee(tempId, {
         ...encryptedData,
         isEncrypting: false,
         isEncrypted: true,
+        encryptionStep: 5,
+        encryptionMessage: 'Encryption complete!',
       });
       toast.success('Employee added and encrypted successfully!', {
         style: {
