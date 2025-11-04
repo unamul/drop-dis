@@ -71,12 +71,12 @@ export const encryptEmployeeData = async (address: string, salary: number) => {
       addressProof: addressProof,
       amountProof: amountProof,
     };
-  } catch (error) {
-    console.error("Encryption failed for employee:", address, error);
+  } catch (error:any) {
+    console.error("Encryption failed for employee:",  error.message);
 
     // Re-throw a more user-friendly error to be caught by the UI.
     throw new Error(
-      "Failed to encrypt employee data. Please check the console for details."
+      error.message
     );
   }
 };
@@ -158,6 +158,8 @@ export const submitSalaryBatch = async (
 
   const receipt = await tx.wait();
 
+  console.log({receipt});
+
   // Extract batch ID from events
   const batchSubmittedEvent = receipt.events?.find(
     (e: any) => e.event === "SalaryBatchSubmitted"
@@ -165,7 +167,7 @@ export const submitSalaryBatch = async (
   const batchId = batchSubmittedEvent?.args?.batchId;
 
   return {
-    transactionHash: receipt.transactionHash,
+    transactionHash: receipt?.transactionHash,
     batchId: batchId?.toNumber(),
   };
 };

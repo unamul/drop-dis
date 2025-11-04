@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {FHE, eaddress, euint64, externalEaddress, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract DropDis is SepoliaConfig {
     address public immutable owner;
@@ -146,6 +146,8 @@ contract DropDis is SepoliaConfig {
             FHE.allowThis(addr);
             FHE.allowThis(amount);
         }
+
+        console.log("EVENT rceived");
 
         emit SalaryBatchSubmitted(batchId, msg.sender, len, msg.value);
 

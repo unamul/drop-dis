@@ -99,6 +99,9 @@ const SalaryDistribution: React.FC = () => {
       } else if (error.message?.includes('reverted')) {
         readableError = 'Transaction reverted — check contract logic or input data';
       }
+       else if (error.message?.includes(`Relayer didn't response correctly`)) {
+        readableError = `Relayer didn't response correctly`;
+      }
 
       // optional: make it cleaner
       readableError = readableError

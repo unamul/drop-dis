@@ -73,7 +73,33 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
         isEncrypting: false,
         encryptionError: error.message,
       });
-      toast.error(error.message);
+      
+      
+      let readableError = 'Transaction failed';
+
+      // ethers v6: error.info / error.shortMessage / error.reason
+      if (error.reason) {
+        readableError = error.reason;
+      } else if (error.shortMessage) {
+        readableError = error.shortMessage;
+      } else if (error.info?.error?.message) {
+        readableError = error.info.error.message;
+      } else if (error.data?.message) {
+        readableError = error.data.message;
+      } else if (error.message?.includes('reverted')) {
+        readableError = 'Transaction reverted — check contract logic or input data';
+      }
+        else if (error.message?.includes(`Relayer didn't response correctly`)) {
+        readableError = `Relayer didn't response correctly`;
+      }
+
+      // optional: make it cleaner
+      readableError = readableError
+        .replace(/execution reverted(:)?/i, '')
+        .replace(/\(error=.*\)/i, '')
+        .trim();
+
+      toast.error(`❌ ${readableError}`);
     } finally {
       setIsAdding(false);
       // Reset form

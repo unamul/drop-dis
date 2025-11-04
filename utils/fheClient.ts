@@ -3,6 +3,8 @@
 let fheInstance: any = null;
 
 export async function initializeFheInstance() {
+
+
   const { initSDK, createInstance, SepoliaConfig } = await import(
     "@zama-fhe/relayer-sdk/bundle"
   );
@@ -25,14 +27,15 @@ export async function initializeFheInstance() {
   }
 
   const config = { ...SepoliaConfig };
+  config.network=process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL
 
   try {
     fheInstance = await createInstance(config);
     console.log("✅ FHEVM instance initialized.");
     return fheInstance;
-  } catch (err) {
+  } catch (err:any) {
     console.error("❌ FHEVM instance creation failed:", err);
-    throw err;
+    throw new Error(err?.message);
   }
 }
 
